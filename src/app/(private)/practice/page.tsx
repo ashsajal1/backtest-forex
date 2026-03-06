@@ -12,6 +12,7 @@ interface Candle {
   high: number;
   low: number;
   close: number;
+  datetime: string;
 }
 
 function parseCandles(data: any[]): Candle[] {
@@ -21,6 +22,7 @@ function parseCandles(data: any[]): Candle[] {
     high: parseFloat(item.high),
     low: parseFloat(item.low),
     close: parseFloat(item.close),
+    datetime: item.datetime,
   }));
 }
 
@@ -33,6 +35,8 @@ function Chart({
   visibleCount: number;
   revealIndex: number;
 }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const displayCandles = candles.slice(0, visibleCount);
   
   if (displayCandles.length === 0) return null;
@@ -69,11 +73,35 @@ function Chart({
         
         const isRevealing = i >= visibleCount - revealIndex && revealIndex > 0;
         
+        const handleMouseEnter = (e: React.MouseEvent) => {
+          setHoveredIndex(i);
+          const rect = (e.target as Element).closest('svg')?.getBoundingClientRect();
+          if (rect) {
+            setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+          }
+        };
+        
+        const handleMouseMove = (e: React.MouseEvent) => {
+          const rect = (e.target as Element).closest('svg')?.getBoundingClientRect();
+          if (rect) {
+            setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+          }
+        };
+        
+        const handleMouseLeave = () => {
+          setHoveredIndex(null);
+        };
+        
         return (
           <g key={i} style={{
             opacity: isRevealing ? Math.min(1, (revealIndex - (i - (visibleCount - revealIndex))) / 3) : 1,
-            transition: 'opacity 0.3s ease-out'
-          }}>
+            transition: 'opacity 0.3s ease-out',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={handleMouseEnter}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          >
             <line
               x1={x}
               y1={scaleY(candle.high)}
@@ -137,6 +165,31 @@ function Chart({
           strokeWidth={1}
           strokeDasharray="3,3"
         />
+      )}
+      
+      {hoveredIndex !== null && displayCandles[hoveredIndex] && (
+        <g>
+          <rect
+            x={tooltipPos.x + 10}
+            y={tooltipPos.y - 35}
+            width={140}
+            height={30}
+            rx={4}
+            fill="#1f2937"
+            stroke="#374151"
+            strokeWidth={1}
+          />
+          <text
+            x={tooltipPos.x + 80}
+            y={tooltipPos.y - 15}
+            textAnchor="middle"
+            fill="#fff"
+            fontSize={11}
+            fontWeight="bold"
+          >
+            {displayCandles[hoveredIndex].datetime}
+          </text>
+        </g>
       )}
     </svg>
   );
