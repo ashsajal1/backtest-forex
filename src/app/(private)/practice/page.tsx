@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUp, ArrowDown, RefreshCw, CheckCircle, XCircle, ChevronRight } from "lucide-react";
@@ -125,8 +125,8 @@ function Chart({
 export default function PracticePage() {
   const [allCandles, setAllCandles] = useState<Candle[]>([]);
   const [startIndex, setStartIndex] = useState(0);
-  const [showCount, setShowCount] = useState(120);
-  const [hideCount, setHideCount] = useState(36);
+  const [showCount, setShowCount] = useState(100);
+  const [hideCount, setHideCount] = useState(30);
   const [revealIndex, setRevealIndex] = useState(0);
   const [step, setStep] = useState<"predict" | "result">("predict");
   const [prediction, setPrediction] = useState<"buy" | "sell" | null>(null);
@@ -264,7 +264,7 @@ export default function PracticePage() {
               <div>
                 <CardTitle className="text-2xl">EUR/USD</CardTitle>
                 <CardDescription>
-                  {showCount} candles shown • {hideCount} candles hidden
+                  {showCount} candles shown • {hideCount} candles hidden ({Math.round((hideCount / (showCount + hideCount)) * 100)}%)
                 </CardDescription>
               </div>
               <div className="text-right">
@@ -282,12 +282,25 @@ export default function PracticePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="bg-muted/20 rounded-lg p-4">
+            <div className="bg-muted/20 rounded-lg p-4 relative">
               <Chart 
                 candles={visibleCandles}
                 visibleCount={visibleCount}
                 revealIndex={revealIndex}
               />
+              {step === "predict" && (
+                <div 
+                  className="absolute inset-0 bg-background/60 backdrop-blur-3xl rounded-lg flex items-center justify-center transition-opacity duration-300"
+                  style={{ 
+                    left: `${(visibleCount / (showCount + hideCount)) * 100}%` 
+                  }}
+                >
+                  <div className="text-center">
+                    <p className="text-lg font-semibold text-muted-foreground">Hidden Area</p>
+                    <p className="text-sm text-muted-foreground">{hideCount} candles</p>
+                  </div>
+                </div>
+              )}
             </div>
             
             {step === "predict" && actualDirection && (
