@@ -182,23 +182,12 @@ export default function HomePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Link
-                    href="/features"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:gap-2 transition-all"
-                  >
-                    Learn more <ArrowRight className="h-4 w-4" />
-                  </Link>
                 </CardContent>
               </Card>
             ))}
           </div>
 
           <div className="text-center mt-12">
-            <Link href="/features">
-              <Button variant="outline" size="lg">
-                View All Features
-              </Button>
-            </Link>
           </div>
         </div>
       </section>
@@ -235,10 +224,10 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-12">
-            <Link href="/demo">
+            <Link href="/sign-up">
               <Button size="lg" className="gap-2">
-                <Play className="h-4 w-4" />
-                Watch Demo
+                Get Started
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -360,11 +349,8 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/pricing">
-                <Button size="lg">View Full Pricing</Button>
-              </Link>
               <Link href="/sign-up">
-                <Button variant="outline" size="lg">
+                <Button size="lg">
                   Start Free Trial
                 </Button>
               </Link>
@@ -389,11 +375,6 @@ export default function HomePage() {
                 <Button size="lg" className="gap-2">
                   Start Free Trial
                   <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/demo">
-                <Button variant="outline" size="lg">
-                  Schedule Demo
                 </Button>
               </Link>
             </div>

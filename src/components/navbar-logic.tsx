@@ -6,13 +6,7 @@ import { usePathname } from "next/navigation";
 import { SheetClose } from "@/components/ui/sheet";
 import { forwardRef } from "react";
 
-const links = [
-  { href: "/products", label: "Products" },
-  { href: "/features", label: "Features" },
-
-  { href: "/use-cases", label: "Use Cases" },
-  { href: "/pricing", label: "Pricing" },
-];
+const links: { href: string; label: string }[] = [];
 
 interface NavbarLogicProps {
   className?: string;

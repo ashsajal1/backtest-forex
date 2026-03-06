@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Home, Search, HelpCircle } from "lucide-react";
+import { ArrowLeft, Home, Search } from "lucide-react";
 
 export default function NotFound() {
   return (
@@ -29,48 +29,6 @@ export default function NotFound() {
               Back to Home
             </Button>
           </Link>
-          <Link href="/contact">
-            <Button variant="outline" size="lg" className="gap-2">
-              <HelpCircle className="h-4 w-4" />
-              Contact Support
-            </Button>
-          </Link>
-        </div>
-
-        {/* Helpful Links */}
-        <div className="border-t pt-8">
-          <p className="text-sm text-muted-foreground mb-4">
-            Looking for something specific? Try these:
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/features"
-              className="text-sm text-primary hover:underline"
-            >
-              Features
-            </Link>
-            <span className="text-muted-foreground">•</span>
-            <Link
-              href="/pricing"
-              className="text-sm text-primary hover:underline"
-            >
-              Pricing
-            </Link>
-            <span className="text-muted-foreground">•</span>
-            <Link
-              href="/demo"
-              className="text-sm text-primary hover:underline"
-            >
-              Book a Demo
-            </Link>
-            <span className="text-muted-foreground">•</span>
-            <Link
-              href="/contact"
-              className="text-sm text-primary hover:underline"
-            >
-              Contact
-            </Link>
-          </div>
         </div>
 
         {/* Search Suggestion */}

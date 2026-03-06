@@ -1,11 +1,8 @@
 import Link from "next/link";
 import {
   Github,
-  Instagram,
   Linkedin,
   Mail,
-  MapPin,
-  Phone,
   Twitter,
   Youtube,
   Zap,
@@ -15,42 +12,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const productLinks = [
-  { label: "Features", href: "/features" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Products", href: "/products" },
-  { label: "Use Cases", href: "/use-cases" },
-  { label: "Live Demo", href: "/demo" },
-];
+const productLinks: { label: string; href: string }[] = [];
 
-const companyLinks = [
-  { label: "About Us", href: "/about" },
-  { label: "Team", href: "/team" },
-  { label: "Contact", href: "/contact" },
-  { label: "FAQ", href: "/faq" },
-];
+const companyLinks: { label: string; href: string }[] = [];
 
-const resourceLinks = [
-  { label: "Feature Tour", href: "/features" },
-  { label: "Use Cases", href: "/use-cases" },
-  { label: "Pricing Guide", href: "/pricing" },
-  { label: "Product Demo", href: "/demo" },
-  { label: "Help Center", href: "/faq" },
-];
+const resourceLinks: { label: string; href: string }[] = [];
 
-const legalLinks = [
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
-  { label: "Security", href: "/security" },
-  { label: "Contact", href: "/contact" },
-];
+const legalLinks: { label: string; href: string }[] = [];
 
 const socialLinks = [
-  { icon: Twitter, href: "https://twitter.com/saasflow", label: "Twitter" },
-  { icon: Linkedin, href: "https://linkedin.com/company/saasflow", label: "LinkedIn" },
-  { icon: Github, href: "https://github.com/saasflow", label: "GitHub" },
-  { icon: Youtube, href: "https://youtube.com/saasflow", label: "YouTube" },
-  { icon: Instagram, href: "https://instagram.com/saasflow", label: "Instagram" },
+  { icon: Twitter, href: "https://twitter.com/forexbacktest", label: "Twitter" },
+  { icon: Linkedin, href: "https://linkedin.com/company/forexbacktest", label: "LinkedIn" },
+  { icon: Github, href: "https://github.com/forexbacktest", label: "GitHub" },
+  { icon: Youtube, href: "https://youtube.com/forexbacktest", label: "YouTube" },
 ];
 
 export function Footer() {
@@ -62,22 +36,17 @@ export function Footer() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
               <h3 className="text-2xl md:text-3xl font-bold mb-2">
-                Ready to streamline your workflow?
+                Ready to start backtesting your forex strategies?
               </h3>
               <p className="text-muted-foreground">
-                Join 10,000+ teams already using SaaSFlow. Start your free trial today.
+                Join traders using ForexBacktest to optimize your trading strategies.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 md:justify-end">
               <Link href="/sign-up">
                 <Button size="lg" className="gap-2">
-                  Start Free Trial
+                  Get Started Free
                   <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/demo">
-                <Button variant="outline" size="lg">
-                  Schedule Demo
                 </Button>
               </Link>
             </div>
@@ -92,24 +61,15 @@ export function Footer() {
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
                 <Zap className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span>SaaSFlow</span>
+              <span>ForexBacktest</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
-              The all-in-one platform that helps teams automate workflows, 
-              collaborate seamlessly, and scale their business.
+              Professional forex backtesting platform to test and optimize your trading strategies.
             </p>
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 flex-shrink-0" />
-                <span>San Francisco, CA 94105</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4 flex-shrink-0" />
-                <span>+1 (555) 123-4567</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4 flex-shrink-0" />
-                <span>hello@saasflow.com</span>
+                <span>support@forexbacktest.com</span>
               </div>
             </div>
           </div>
@@ -206,20 +166,8 @@ export function Footer() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex flex-col md:flex-row items-center gap-4">
               <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} SaaSFlow, Inc. All rights reserved.
+                © {new Date().getFullYear()} ForexBacktest, Inc. All rights reserved.
               </p>
-              <div className="hidden md:block w-px h-4 bg-border" />
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                {legalLinks.slice(0, 3).map((link) => (
-                  <Link
-                    key={link.label}
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
             </div>
             
             <div className="flex items-center gap-2">
