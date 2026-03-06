@@ -162,6 +162,7 @@ function PracticeGame({
   setScore,
   allCandles,
   startIndex,
+  onNext,
 }: {
   totalCandles: number;
   predictionIndex: number;
@@ -170,6 +171,7 @@ function PracticeGame({
   setScore: React.Dispatch<React.SetStateAction<{ correct: number; total: number }>>;
   allCandles: Candle[];
   startIndex: number;
+  onNext: () => void;
 }) {
   const [revealCount, setRevealCount] = useState(0);
   const [step, setStep] = useState<"predict" | "result">("predict");
@@ -184,7 +186,8 @@ function PracticeGame({
       clearTimeout(revealTimeout);
       setRevealTimeout(null);
     }
-  }, [revealTimeout]);
+    onNext();
+  }, [revealTimeout, onNext]);
   
   useEffect(() => {
     return () => {
@@ -379,6 +382,39 @@ export default function PracticePage() {
   const accuracy100 = score100.total > 0 ? Math.round((score100.correct / score100.total) * 100) : 0;
   const accuracy200 = score200.total > 0 ? Math.round((score200.correct / score200.total) * 100) : 0;
   
+  const advance50 = useCallback(() => {
+    setStartIndex50(prev => {
+      const maxStart = allCandles.length - 50 - 10 - 1;
+      const next = prev + 50;
+      if (next > maxStart) {
+        return Math.floor(Math.random() * Math.max(1, maxStart));
+      }
+      return next;
+    });
+  }, [allCandles.length]);
+  
+  const advance100 = useCallback(() => {
+    setStartIndex100(prev => {
+      const maxStart = allCandles.length - 100 - 20 - 1;
+      const next = prev + 100;
+      if (next > maxStart) {
+        return Math.floor(Math.random() * Math.max(1, maxStart));
+      }
+      return next;
+    });
+  }, [allCandles.length]);
+  
+  const advance200 = useCallback(() => {
+    setStartIndex200(prev => {
+      const maxStart = allCandles.length - 200 - 20 - 1;
+      const next = prev + 200;
+      if (next > maxStart) {
+        return Math.floor(Math.random() * Math.max(1, maxStart));
+      }
+      return next;
+    });
+  }, [allCandles.length]);
+  
   if (!mounted || allCandles.length === 0) {
     return (
       <div className="min-h-screen bg-background p-4 md:p-8 flex items-center justify-center">
@@ -433,6 +469,7 @@ export default function PracticePage() {
                   setScore={setScore50}
                   allCandles={allCandles}
                   startIndex={startIndex50}
+                  onNext={advance50}
                 />
               </CardContent>
             </Card>
@@ -455,6 +492,7 @@ export default function PracticePage() {
                   setScore={setScore100}
                   allCandles={allCandles}
                   startIndex={startIndex100}
+                  onNext={advance100}
                 />
               </CardContent>
             </Card>
@@ -477,6 +515,7 @@ export default function PracticePage() {
                   setScore={setScore200}
                   allCandles={allCandles}
                   startIndex={startIndex200}
+                  onNext={advance200}
                 />
               </CardContent>
             </Card>
