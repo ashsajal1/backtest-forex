@@ -492,25 +492,6 @@ export default function PracticePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-6">
       <div className="w-full space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <TrendingUp className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold tracking-tight">Forex Practice</h1>
-                <p className="text-muted-foreground text-lg">Master price direction prediction</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <ScoreCard label="50" score={score50} accuracy={accuracy50} />
-            <ScoreCard label="100" score={score100} accuracy={accuracy100} />
-            <ScoreCard label="200" score={score200} accuracy={accuracy200} />
-          </div>
-        </div>
         
         <Card className="border-primary/10">
           <Tabs defaultValue="50" className="w-full">
@@ -535,6 +516,11 @@ export default function PracticePage() {
               </div>
             </CardHeader>
             <CardContent>
+              <div className="flex items-center justify-center gap-4 mb-6">
+                <ScoreCard label="50" score={score50} accuracy={accuracy50} />
+                <ScoreCard label="100" score={score100} accuracy={accuracy100} />
+                <ScoreCard label="200" score={score200} accuracy={accuracy200} />
+              </div>
               <TabsContent value="50" className="mt-0">
                 <PracticeGame
                   totalCandles={config["50"].total}
