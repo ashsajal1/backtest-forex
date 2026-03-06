@@ -16,7 +16,8 @@ interface Candle {
 }
 
 function parseCandles(data: any[]): Candle[] {
-  return data.map((item, index) => ({
+  const reversed = [...data].reverse();
+  return reversed.map((item, index) => ({
     time: index,
     open: parseFloat(item.open),
     high: parseFloat(item.high),
@@ -37,7 +38,7 @@ function Chart({
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-  const displayCandles = candles.slice(0, visibleCount);
+  const displayCandles = candles.slice(0, visibleCount + revealIndex);
   
   if (displayCandles.length === 0) return null;
   
@@ -48,9 +49,17 @@ function Chart({
   
   const width = 900;
   const height = 300;
-  const candleWidth = width / displayCandles.length;
   
+  // Time-based positioning
+  const timeValues = displayCandles.map(c => new Date(c.datetime).getTime());
+  const minTime = Math.min(...timeValues);
+  const maxTime = Math.max(...timeValues);
+  const timeRange = maxTime - minTime || 1;
+  
+  const scaleX = (time: number) => ((time - minTime) / timeRange) * width;
   const scaleY = (value: number) => height - ((value - minLow + padding) / (range + padding * 2)) * height;
+  
+  const candleWidth = Math.max(4, (width / displayCandles.length) * 0.6);
   
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[300px]">
@@ -67,11 +76,12 @@ function Chart({
       ))}
       
       {displayCandles.map((candle, i) => {
-        const x = i * candleWidth + candleWidth / 2;
+        const candleTime = new Date(candle.datetime).getTime();
+        const x = scaleX(candleTime);
         const isBullish = candle.close >= candle.open;
         const color = isBullish ? "#22c55e" : "#ef4444";
         
-        const isRevealing = i >= visibleCount - revealIndex && revealIndex > 0;
+        const isRevealing = i >= visibleCount && revealIndex > 0;
         
         const handleMouseEnter = (e: React.MouseEvent) => {
           setHoveredIndex(i);
@@ -94,7 +104,7 @@ function Chart({
         
         return (
           <g key={i} style={{
-            opacity: isRevealing ? Math.min(1, (revealIndex - (i - (visibleCount - revealIndex))) / 3) : 1,
+            opacity: isRevealing ? Math.min(1, (revealIndex - (i - visibleCount)) / 3) : 1,
             transition: 'opacity 0.3s ease-out',
             cursor: 'pointer'
           }}
@@ -111,7 +121,7 @@ function Chart({
               strokeWidth={1}
             />
             <rect
-              x={i * candleWidth + 1}
+              x={x - candleWidth / 2}
               y={scaleY(Math.max(candle.open, candle.close))}
               width={Math.max(candleWidth - 2, 2)}
               height={Math.max(1, Math.abs(scaleY(candle.open) - scaleY(candle.close)))}
@@ -121,19 +131,19 @@ function Chart({
         );
       })}
       
-      {(revealIndex === 0 || revealIndex > 0) && visibleCount < candles.length && (
+      {(revealIndex === 0 || revealIndex > 0) && displayCandles.length > 0 && (
         <g>
           <line
-            x1={78 * candleWidth}
+            x1={scaleX(new Date(displayCandles[Math.min(77, displayCandles.length - 1)].datetime).getTime())}
             y1={0}
-            x2={78 * candleWidth}
+            x2={scaleX(new Date(displayCandles[Math.min(77, displayCandles.length - 1)].datetime).getTime())}
             y2={height}
             stroke="#fbbf24"
             strokeWidth={3}
             strokeDasharray="8,4"
           />
           <rect
-            x={78 * candleWidth - 60}
+            x={scaleX(new Date(displayCandles[Math.min(77, displayCandles.length - 1)].datetime).getTime()) - 60}
             y={10}
             width={120}
             height={24}
@@ -141,7 +151,7 @@ function Chart({
             fill="#fbbf24"
           />
           <text
-            x={78 * candleWidth}
+            x={scaleX(new Date(displayCandles[Math.min(77, displayCandles.length - 1)].datetime).getTime())}
             y={26}
             textAnchor="middle"
             fill="#000"
@@ -155,9 +165,9 @@ function Chart({
       
       {revealIndex > 0 && (
         <rect
-          x={(visibleCount - revealIndex) * candleWidth}
+          x={scaleX(new Date(displayCandles[Math.max(0, visibleCount - revealIndex)]?.datetime || displayCandles[0].datetime).getTime())}
           y={0}
-          x2={revealIndex * candleWidth}
+          width={scaleX(new Date(displayCandles[Math.min(displayCandles.length - 1, visibleCount + revealIndex - 1)]?.datetime || displayCandles[displayCandles.length - 1].datetime).getTime()) - scaleX(new Date(displayCandles[Math.max(0, visibleCount - revealIndex)]?.datetime || displayCandles[0].datetime).getTime())}
           height={height}
           fill="#fbbf24"
           fillOpacity={0.1}
@@ -363,9 +373,12 @@ export default function PracticePage() {
               />
               {step === "predict" && (
                 <div 
-                  className="absolute inset-0 bg-background/60 backdrop-blur-3xl rounded-lg flex items-center justify-center transition-opacity duration-300"
+                  className="absolute inset-y-0 bg-background/60 backdrop-blur-3xl rounded-r-lg flex items-center justify-center transition-opacity duration-300"
                   style={{ 
-                    left: `${(visibleCount / (showCount + hideCount)) * 100}%` 
+                    left: `${((visibleCandles.length > 0 && visibleCandles[Math.min(77, visibleCandles.length - 1)]) ? 
+                      (new Date(visibleCandles[Math.min(77, visibleCandles.length - 1)].datetime).getTime() - new Date(visibleCandles[0].datetime).getTime()) / 
+                      (new Date(visibleCandles[visibleCandles.length - 1].datetime).getTime() - new Date(visibleCandles[0].datetime).getTime()) * 100 : 78)}%`,
+                    right: 0
                   }}
                 >
                   <div className="text-center">
