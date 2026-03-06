@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUp, ArrowDown, RefreshCw, CheckCircle, XCircle } from "lucide-react";
-import eurUsdData from "@/db/EURUSD.json";
+import { ArrowUp, ArrowDown, RefreshCw, CheckCircle, XCircle, TrendingUp, TrendingDown } from "lucide-react";
 
 interface Candle {
   time: number;
@@ -16,30 +14,51 @@ interface Candle {
 }
 
 const FOREX_PAIRS = [
-  { label: "EUR/USD", pips: 10000, data: eurUsdData.values as any[] },
+  { label: "EUR/USD", pips: 10000, basePrice: 1.0850 },
+  { label: "GBP/USD", pips: 10000, basePrice: 1.2650 },
+  { label: "USD/JPY", basePrice: 149.50, pips: 100 },
+  { label: "AUD/USD", pips: 10000, basePrice: 0.6550 },
+  { label: "USD/CAD", pips: 10000, basePrice: 1.3650 },
 ];
 
-function parseCandles(data: any[]): Candle[] {
-  const startTime = Date.now() - data.length * 5 * 60 * 1000;
-  return data.map((item, index) => ({
-    time: startTime + index * 5 * 60 * 1000,
-    open: parseFloat(item.open),
-    high: parseFloat(item.high),
-    low: parseFloat(item.low),
-    close: parseFloat(item.close),
-  }));
+function generateCandles(pair: typeof FOREX_PAIRS[0], count: number = 100): Candle[] {
+  const candles: Candle[] = [];
+  let price = pair.basePrice + (Math.random() - 0.5) * 0.01;
+  const now = Date.now();
+  const volatility = pair.pips === 100 ? 0.01 : 0.0001;
+  
+  for (let i = 0; i < count; i++) {
+    const trend = i > count * 0.6 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+    const change = (Math.random() * volatility * 2 - volatility) + (trend * volatility * 0.5);
+    
+    const open = price;
+    const close = price + change;
+    const high = Math.max(open, close) + Math.random() * volatility * 0.5;
+    const low = Math.min(open, close) - Math.random() * volatility * 0.5;
+    
+    candles.push({
+      time: now - (count - i) * 5 * 60 * 1000,
+      open,
+      high,
+      low,
+      close,
+    });
+    
+    price = close;
+  }
+  
+  return candles;
 }
 
 function ForexChart({ 
-  candles, 
-  showFull 
+  candles,
+  highlightFrom 
 }: { 
-  candles: Candle[]; 
-  showFull: boolean;
+  candles: Candle[];
+  highlightFrom?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
-  const seriesRef = useRef<any>(null);
   
   useEffect(() => {
     if (!containerRef.current || typeof window === "undefined") return;
@@ -84,10 +103,16 @@ function ForexChart({
       });
       
       chartRef.current = chart;
-      seriesRef.current = candlestickSeries;
       
-      const visibleCandles = showFull ? candles : candles.slice(0, Math.floor(candles.length / 2));
-      candlestickSeries.setData(visibleCandles);
+      const chartData = candles.map(c => ({
+        time: c.time / 1000 as any,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      }));
+      
+      candlestickSeries.setData(chartData);
       chart.timeScale().fitContent();
     };
     
@@ -108,35 +133,52 @@ function ForexChart({
         chartRef.current = null;
       }
     };
-  }, [candles, showFull]);
+  }, [candles, highlightFrom]);
   
   return <div ref={containerRef} className="w-full h-[350px]" />;
 }
 
 export default function PracticePage() {
   const [allCandles, setAllCandles] = useState<Candle[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(50);
+  const [pair, setPair] = useState(FOREX_PAIRS[0]);
+  const [predictAtIndex, setPredictAtIndex] = useState<number | null>(null);
   const [step, setStep] = useState<"predict" | "result">("predict");
   const [prediction, setPrediction] = useState<"buy" | "sell" | null>(null);
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [mounted, setMounted] = useState(false);
   
-  useEffect(() => {
-    const candles = parseCandles(FOREX_PAIRS[0].data);
+  const startNewRound = useCallback(() => {
+    const newPair = FOREX_PAIRS[Math.floor(Math.random() * FOREX_PAIRS.length)];
+    setPair(newPair);
+    const candles = generateCandles(newPair, 100);
     setAllCandles(candles);
-    setMounted(true);
+    
+    const predictIndex = 40 + Math.floor(Math.random() * 20);
+    setPredictAtIndex(predictIndex);
+    setStep("predict");
+    setPrediction(null);
   }, []);
   
+  useEffect(() => {
+    setMounted(true);
+    startNewRound();
+  }, [startNewRound]);
+  
   const visibleCandles = useMemo(() => {
-    if (allCandles.length === 0) return [];
-    return allCandles.slice(0, currentIndex + 1);
-  }, [allCandles, currentIndex]);
+    if (allCandles.length === 0 || predictAtIndex === null) return [];
+    
+    if (step === "predict") {
+      return allCandles.slice(0, predictAtIndex + 1);
+    }
+    
+    return allCandles.slice(0, predictAtIndex + 2);
+  }, [allCandles, predictAtIndex, step]);
   
-  const lastCandle = visibleCandles[visibleCandles.length - 1];
-  const secondLastCandle = visibleCandles[visibleCandles.length - 2];
+  const predictionCandle = predictAtIndex !== null ? allCandles[predictAtIndex] : null;
+  const nextCandle = predictAtIndex !== null ? allCandles[predictAtIndex + 1] : null;
   
-  const actualDirection = lastCandle && secondLastCandle 
-    ? (lastCandle.close > secondLastCandle.close ? "buy" : "sell")
+  const actualDirection = nextCandle && predictionCandle
+    ? (nextCandle.close > predictionCandle.close ? "buy" : "sell")
     : null;
   
   const handlePredict = useCallback((direction: "buy" | "sell") => {
@@ -150,17 +192,15 @@ export default function PracticePage() {
   }, [actualDirection]);
   
   const handleNext = useCallback(() => {
-    setCurrentIndex(prev => Math.min(prev + 1, allCandles.length - 1));
-    setStep("predict");
-    setPrediction(null);
-  }, [allCandles.length]);
+    startNewRound();
+  }, [startNewRound]);
   
   const accuracy = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
   
   if (!mounted || allCandles.length === 0) {
     return (
       <div className="min-h-screen bg-background p-4 md:p-8 flex items-center justify-center">
-        <p>Loading chart data...</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -186,7 +226,7 @@ export default function PracticePage() {
                   <span>{score.total - score.correct}</span>
                 </div>
                 <div className="text-muted-foreground">
-                  {accuracy}% accuracy
+                  {accuracy}%
                 </div>
               </div>
             </Card>
@@ -197,18 +237,18 @@ export default function PracticePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-2xl">EUR/USD</CardTitle>
+                <CardTitle className="text-2xl">{pair.label}</CardTitle>
                 <CardDescription>5 Minute Chart - Predict the next candle</CardDescription>
               </div>
               <div className="text-right">
-                {lastCandle && (
+                {predictionCandle && (
                   <>
                     <div className="text-2xl font-mono font-bold">
-                      {lastCandle.close.toFixed(5)}
+                      {predictionCandle.close.toFixed(pair.pips === 100 ? 2 : 5)}
                     </div>
-                    <div className={`text-sm ${lastCandle.close >= lastCandle.open ? "text-green-500" : "text-red-500"}`}>
-                      {lastCandle.close >= lastCandle.open ? "+" : ""}
-                      {((lastCandle.close - lastCandle.open) * 10000).toFixed(1)} pips
+                    <div className={`text-sm ${predictionCandle.close >= predictionCandle.open ? "text-green-500" : "text-red-500"}`}>
+                      {predictionCandle.close >= predictionCandle.open ? "+" : ""}
+                      {((predictionCandle.close - predictionCandle.open) * pair.pips).toFixed(1)} pips
                     </div>
                   </>
                 )}
@@ -218,15 +258,14 @@ export default function PracticePage() {
           <CardContent>
             <div className="bg-muted/20 rounded-lg p-2">
               <ForexChart 
-                candles={visibleCandles} 
-                showFull={step === "result"}
+                candles={visibleCandles}
               />
             </div>
             
             {step === "predict" && actualDirection && (
               <div className="mt-6 space-y-4">
                 <p className="text-center text-muted-foreground">
-                  Based on the chart pattern, predict the next 5-minute candle:
+                  Based on the chart, predict the next candle direction:
                 </p>
                 <div className="flex justify-center gap-4">
                   <Button
@@ -249,7 +288,7 @@ export default function PracticePage() {
               </div>
             )}
             
-            {step === "result" && actualDirection && (
+            {step === "result" && actualDirection && nextCandle && (
               <div className="mt-6 space-y-4">
                 <div className={`text-center p-4 rounded-lg ${
                   prediction === actualDirection 
@@ -271,6 +310,7 @@ export default function PracticePage() {
                     <span className="font-bold">
                       {actualDirection.toUpperCase()}
                     </span>
+                    {" "}({((nextCandle.close - predictionCandle.close) * pair.pips).toFixed(1)} pips)
                   </p>
                 </div>
                 
@@ -279,7 +319,6 @@ export default function PracticePage() {
                     size="lg" 
                     onClick={handleNext} 
                     className="gap-2"
-                    disabled={currentIndex >= allCandles.length - 1}
                   >
                     <RefreshCw className="w-5 h-5" />
                     Next Chart
@@ -296,10 +335,10 @@ export default function PracticePage() {
           </CardHeader>
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-              <li>A EUR/USD 5-minute chart is displayed (50% visible)</li>
+              <li>A random forex pair chart is displayed</li>
               <li>Analyze the price pattern and trend</li>
               <li>Predict whether the next candle will be bullish (BUY) or bearish (SELL)</li>
-              <li>See if you were correct and learn from each prediction</li>
+              <li>See the full chart from your prediction point</li>
             </ol>
           </CardContent>
         </Card>
