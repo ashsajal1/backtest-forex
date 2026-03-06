@@ -84,6 +84,11 @@ export default function NavbarClient() {
             <ModeToggle />
 
             <SignedIn>
+              <Link href="/practice">
+                <Button variant="ghost" size="sm">
+                  Practice
+                </Button>
+              </Link>
               <Link href="/notification">
                 <Button size="icon" variant="outline" className="relative">
                   <Bell className="w-4 h-4" />
