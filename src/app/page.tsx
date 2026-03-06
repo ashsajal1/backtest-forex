@@ -277,8 +277,8 @@ function PracticeGame({
   }
   
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between bg-muted/30 rounded-lg p-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-yellow-500/10 rounded-lg">
             <Target className="w-5 h-5 text-yellow-500" />
@@ -319,89 +319,90 @@ function PracticeGame({
         </div>
       </div>
       
-      <div className="bg-muted/20 rounded-lg p-4">
-        <Chart 
-          candles={visibleCandles}
-          visibleCount={predictionIndex + 1}
-          revealCount={revealCount}
-          markIndex={predictionIndex}
-        />
-      </div>
-      
-      {step === "predict" && actualDirection && (
-        <div className="mt-8 space-y-4">
-          <p className="text-center text-muted-foreground">
-            Will price go UP or DOWN from candle #{predictionIndex + 1} ({markedCandle?.close.toFixed(5)}) to candle #{totalCandles}?
-          </p>
-          <div className="flex justify-center gap-6">
-            <Button
-              size="lg"
-              className="gap-2 bg-green-600 hover:bg-green-700 min-w-[140px] h-14 text-lg"
-              onClick={() => handlePredict("buy")}
-            >
-              <ArrowUp className="w-6 h-6" />
-              LONG
-            </Button>
-            <Button
-              size="lg"
-              className="gap-2 bg-red-600 hover:bg-red-700 min-w-[140px] h-14 text-lg"
-              onClick={() => handlePredict("sell")}
-            >
-              <ArrowDown className="w-6 h-6" />
-              SHORT
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      {step === "result" && (
-        <div className="mt-8 space-y-6">
-          <div className={`text-center p-6 rounded-xl border-2 ${
-            prediction === actualDirection 
-              ? "bg-green-500/10 border-green-500/30" 
-              : "bg-red-500/10 border-red-500/30"
-          }`}>
-            <div className="flex items-center justify-center gap-3 mb-3">
-              {prediction === actualDirection ? (
-                <CheckCircle className="w-8 h-8 text-green-500" />
-              ) : (
-                <XCircle className="w-8 h-8 text-red-500" />
-              )}
-              <span className="text-2xl font-bold">
-                {prediction === actualDirection ? "Correct!" : "Wrong!"}
-              </span>
-            </div>
-            <p className="text-muted-foreground">
-              {markedCandle?.close.toFixed(5)} → {lastCandle?.close.toFixed(5)} = <span className="font-mono font-semibold text-foreground">{priceChange} pips</span>
-            </p>
-            <div className="mt-2">
-              <Badge variant={actualDirection === "buy" ? "default" : "destructive"} className="gap-1">
-                {actualDirection === "buy" ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                {actualDirection?.toUpperCase()} ({actualDirection === "buy" ? "price UP" : "price DOWN"})
-              </Badge>
-            </div>
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <div className="bg-muted/20 rounded-lg p-4">
+            <Chart 
+              candles={visibleCandles}
+              visibleCount={predictionIndex + 1}
+              revealCount={revealCount}
+              markIndex={predictionIndex}
+            />
           </div>
           
-          <div className="flex justify-center gap-4">
-            <Button 
-              size="lg" 
-              onClick={handleSkip}
-              variant="outline"
-              disabled={revealCount >= hideCount}
-            >
-              Skip
-            </Button>
-            <Button 
-              size="lg" 
-              onClick={handleNext}
-              className="gap-2 min-w-[140px]"
-            >
-              <ChevronRight className="w-5 h-5" />
-              Next
-            </Button>
-          </div>
+          {step === "result" && (
+            <div className={`mt-4 text-center p-4 rounded-xl border-2 ${
+              prediction === actualDirection 
+                ? "bg-green-500/10 border-green-500/30" 
+                : "bg-red-500/10 border-red-500/30"
+            }`}>
+              <div className="flex items-center justify-center gap-3 mb-2">
+                {prediction === actualDirection ? (
+                  <CheckCircle className="w-6 h-6 text-green-500" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-red-500" />
+                )}
+                <span className="text-xl font-bold">
+                  {prediction === actualDirection ? "Correct!" : "Wrong!"}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {markedCandle?.close.toFixed(5)} → {lastCandle?.close.toFixed(5)} = <span className="font-mono font-semibold text-foreground">{priceChange} pips</span>
+              </p>
+              <div className="mt-2">
+                <Badge variant={actualDirection === "buy" ? "default" : "destructive"} className="gap-1">
+                  {actualDirection === "buy" ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  {actualDirection?.toUpperCase()}
+                </Badge>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+        
+        <div className="w-56 space-y-3">
+          {step === "predict" && actualDirection && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground text-center">
+                Predict price direction
+              </p>
+              <Button
+                className="w-full gap-2 bg-green-600 hover:bg-green-700 h-12 text-base"
+                onClick={() => handlePredict("buy")}
+              >
+                <ArrowUp className="w-5 h-5" />
+                LONG
+              </Button>
+              <Button
+                className="w-full gap-2 bg-red-600 hover:bg-red-700 h-12 text-base"
+                onClick={() => handlePredict("sell")}
+              >
+                <ArrowDown className="w-5 h-5" />
+                SHORT
+              </Button>
+            </div>
+          )}
+          
+          {step === "result" && (
+            <div className="space-y-3">
+              <Button 
+                className="w-full" 
+                onClick={handleSkip}
+                variant="outline"
+                disabled={revealCount >= hideCount}
+              >
+                Skip
+              </Button>
+              <Button 
+                className="w-full gap-2"
+                onClick={handleNext}
+              >
+                <ChevronRight className="w-5 h-5" />
+                Next
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -490,7 +491,7 @@ export default function PracticePage() {
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-6">
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="w-full space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
@@ -511,35 +512,30 @@ export default function PracticePage() {
           </div>
         </div>
         
-        <Tabs defaultValue="50" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="50" className="text-base gap-2">
-              <Target className="w-4 h-4" /> 50
-            </TabsTrigger>
-            <TabsTrigger value="100" className="text-base gap-2">
-              <Eye className="w-4 h-4" /> 100
-            </TabsTrigger>
-            <TabsTrigger value="200" className="text-base gap-2">
-              <Zap className="w-4 h-4" /> 200
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="50">
-            <Card className="border-primary/10">
-              <CardHeader className="pb-4">
+        <Card className="border-primary/10">
+          <Tabs defaultValue="50" className="w-full">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg">
-                    <Target className="w-5 h-5 text-primary" />
+                    <TrendingUp className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <CardTitle>EUR/USD - 50 Candles</CardTitle>
-                    <CardDescription className="mt-1">
-                      Compare candle #{config["50"].predictionIndex + 1} with candle #{config["50"].total} • {config["50"].hideCount} hidden
+                    <CardTitle>EUR/USD Practice</CardTitle>
+                    <CardDescription>
+                      Predict price direction
                     </CardDescription>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
+                <TabsList>
+                  <TabsTrigger value="50">50</TabsTrigger>
+                  <TabsTrigger value="100">100</TabsTrigger>
+                  <TabsTrigger value="200">200</TabsTrigger>
+                </TabsList>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <TabsContent value="50" className="mt-0">
                 <PracticeGame
                   totalCandles={config["50"].total}
                   predictionIndex={config["50"].predictionIndex}
@@ -551,26 +547,9 @@ export default function PracticePage() {
                   onNext={advance50}
                   gameKey={gameKey50}
                 />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="100">
-            <Card className="border-primary/10">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Eye className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle>EUR/USD - 100 Candles</CardTitle>
-                    <CardDescription className="mt-1">
-                      Compare candle #{config["100"].predictionIndex + 1} with candle #{config["100"].total} • {config["100"].hideCount} hidden
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
+              </TabsContent>
+              
+              <TabsContent value="100" className="mt-0">
                 <PracticeGame
                   totalCandles={config["100"].total}
                   predictionIndex={config["100"].predictionIndex}
@@ -582,26 +561,9 @@ export default function PracticePage() {
                   onNext={advance100}
                   gameKey={gameKey100}
                 />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="200">
-            <Card className="border-primary/10">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Zap className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle>EUR/USD - 200 Candles</CardTitle>
-                    <CardDescription className="mt-1">
-                      Compare candle #{config["200"].predictionIndex + 1} with candle #{config["200"].total} • {config["200"].hideCount} hidden
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
+              </TabsContent>
+              
+              <TabsContent value="200" className="mt-0">
                 <PracticeGame
                   totalCandles={config["200"].total}
                   predictionIndex={config["200"].predictionIndex}
@@ -613,10 +575,10 @@ export default function PracticePage() {
                   onNext={advance200}
                   gameKey={gameKey200}
                 />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </TabsContent>
+            </CardContent>
+          </Tabs>
+        </Card>
         
         <Card className="border-primary/20">
           <CardHeader>
