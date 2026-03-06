@@ -4,8 +4,10 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, RefreshCw, CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import { ArrowUp, ArrowDown, ChevronRight, TrendingUp, TrendingDown, HelpCircle, Target, Eye, Zap, CheckCircle, XCircle } from "lucide-react";
 import eurUsdData from "@/db/EURUSD.json";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 interface Candle {
   time: number;
@@ -156,6 +158,25 @@ function Chart({
   );
 }
 
+function ScoreCard({ label, score, accuracy }: { label: string; score: { correct: number; total: number }; accuracy: number }) {
+  return (
+    <Card className="px-4 py-2 min-w-[110px]">
+      <div className="flex items-center justify-between gap-2">
+        <Badge variant="secondary" className="font-mono text-xs">{label}</Badge>
+        <div className="text-right">
+          <div className="font-bold text-sm">{score.correct}/{score.total}</div>
+          <div className={`text-xs ${accuracy >= 60 ? 'text-green-500' : accuracy >= 40 ? 'text-yellow-500' : 'text-red-500'}`}>
+            {accuracy}%
+          </div>
+        </div>
+      </div>
+      {score.total > 0 && (
+        <Progress value={accuracy} className="h-1 mt-2" />
+      )}
+    </Card>
+  );
+}
+
 interface PracticeGameProps {
   totalCandles: number;
   predictionIndex: number;
@@ -256,28 +277,42 @@ function PracticeGame({
   }
   
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          {markedCandle && (
-            <>
-              <div className="text-lg font-mono">
-                Marked: {markedCandle.close.toFixed(5)}
-              </div>
-              <div className="text-xs text-yellow-500">
-                @ candle #{predictionIndex + 1} ({markedCandle.datetime})
-              </div>
-            </>
-          )}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between bg-muted/30 rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-yellow-500/10 rounded-lg">
+            <Target className="w-5 h-5 text-yellow-500" />
+          </div>
+          <div>
+            {markedCandle && (
+              <>
+                <div className="text-lg font-mono font-semibold">
+                  Marked: <span className="text-yellow-500">{markedCandle.close.toFixed(5)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Candle #{predictionIndex + 1} ({markedCandle.datetime})
+                </div>
+              </>
+            )}
+          </div>
         </div>
-        <div className="text-right">
+        <div className="flex items-center gap-3">
           {lastCandle && step === "result" && (
             <>
-              <div className="text-lg font-mono">
-                Last: {lastCandle.close.toFixed(5)}
+              <div className="text-right">
+                <div className="text-lg font-mono font-semibold">
+                  Last: <span className={actualDirection === "buy" ? "text-green-500" : "text-red-500"}>{lastCandle.close.toFixed(5)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Candle #{totalCandles} ({lastCandle.datetime})
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                @ candle #{totalCandles} ({lastCandle.datetime})
+              <div className={`p-2 rounded-lg ${actualDirection === "buy" ? "bg-green-500/10" : "bg-red-500/10"}`}>
+                {actualDirection === "buy" ? (
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                ) : (
+                  <TrendingDown className="w-5 h-5 text-red-500" />
+                )}
               </div>
             </>
           )}
@@ -294,25 +329,25 @@ function PracticeGame({
       </div>
       
       {step === "predict" && actualDirection && (
-        <div className="mt-6 space-y-4">
+        <div className="mt-8 space-y-4">
           <p className="text-center text-muted-foreground">
-            Compare candle #{predictionIndex + 1} ({markedCandle?.close.toFixed(5)}) with candle #{totalCandles}
+            Will price go UP or DOWN from candle #{predictionIndex + 1} ({markedCandle?.close.toFixed(5)}) to candle #{totalCandles}?
           </p>
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-6">
             <Button
               size="lg"
-              className="gap-2 bg-green-600 hover:bg-green-700"
+              className="gap-2 bg-green-600 hover:bg-green-700 min-w-[140px] h-14 text-lg"
               onClick={() => handlePredict("buy")}
             >
-              <ArrowUp className="w-5 h-5" />
+              <ArrowUp className="w-6 h-6" />
               LONG
             </Button>
             <Button
               size="lg"
-              className="gap-2 bg-red-600 hover:bg-red-700"
+              className="gap-2 bg-red-600 hover:bg-red-700 min-w-[140px] h-14 text-lg"
               onClick={() => handlePredict("sell")}
             >
-              <ArrowDown className="w-5 h-5" />
+              <ArrowDown className="w-6 h-6" />
               SHORT
             </Button>
           </div>
@@ -320,26 +355,31 @@ function PracticeGame({
       )}
       
       {step === "result" && (
-        <div className="mt-6 space-y-4">
-          <div className={`text-center p-4 rounded-lg ${
+        <div className="mt-8 space-y-6">
+          <div className={`text-center p-6 rounded-xl border-2 ${
             prediction === actualDirection 
-              ? "bg-green-500/20 text-green-500" 
-              : "bg-red-500/20 text-red-500"
+              ? "bg-green-500/10 border-green-500/30" 
+              : "bg-red-500/10 border-red-500/30"
           }`}>
-            <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="flex items-center justify-center gap-3 mb-3">
               {prediction === actualDirection ? (
-                <CheckCircle className="w-6 h-6" />
+                <CheckCircle className="w-8 h-8 text-green-500" />
               ) : (
-                <XCircle className="w-6 h-6" />
+                <XCircle className="w-8 h-8 text-red-500" />
               )}
-              <span className="text-xl font-bold">
+              <span className="text-2xl font-bold">
                 {prediction === actualDirection ? "Correct!" : "Wrong!"}
               </span>
             </div>
-            <p className="text-sm">
-              {markedCandle?.close.toFixed(5)} → {lastCandle?.close.toFixed(5)} = {priceChange} pips<br/>
-              <span className="font-bold">{actualDirection?.toUpperCase()}</span> ({actualDirection === "buy" ? "price UP" : "price DOWN"})
+            <p className="text-muted-foreground">
+              {markedCandle?.close.toFixed(5)} → {lastCandle?.close.toFixed(5)} = <span className="font-mono font-semibold text-foreground">{priceChange} pips</span>
             </p>
+            <div className="mt-2">
+              <Badge variant={actualDirection === "buy" ? "default" : "destructive"} className="gap-1">
+                {actualDirection === "buy" ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                {actualDirection?.toUpperCase()} ({actualDirection === "buy" ? "price UP" : "price DOWN"})
+              </Badge>
+            </div>
           </div>
           
           <div className="flex justify-center gap-4">
@@ -354,7 +394,7 @@ function PracticeGame({
             <Button 
               size="lg" 
               onClick={handleNext}
-              className="gap-2"
+              className="gap-2 min-w-[140px]"
             >
               <ChevronRight className="w-5 h-5" />
               Next
@@ -449,41 +489,55 @@ export default function PracticePage() {
   }
   
   return (
-    <div className="min-h-screen bg-background p-4 md:p-4">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Forex Practice</h1>
-            <p className="text-muted-foreground">Compare marked candle with last candle</p>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-6">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <TrendingUp className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">Forex Practice</h1>
+                <p className="text-muted-foreground text-lg">Master price direction prediction</p>
+              </div>
+            </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Card className="px-3 py-1 text-xs">
-              <span className="text-muted-foreground">50:</span> <span className="font-bold">{score50.correct}/{score50.total}</span> <span className="text-muted-foreground">({accuracy50}%)</span>
-            </Card>
-            <Card className="px-3 py-1 text-xs">
-              <span className="text-muted-foreground">100:</span> <span className="font-bold">{score100.correct}/{score100.total}</span> <span className="text-muted-foreground">({accuracy100}%)</span>
-            </Card>
-            <Card className="px-3 py-1 text-xs">
-              <span className="text-muted-foreground">200:</span> <span className="font-bold">{score200.correct}/{score200.total}</span> <span className="text-muted-foreground">({accuracy200}%)</span>
-            </Card>
+          <div className="flex items-center gap-3">
+            <ScoreCard label="50" score={score50} accuracy={accuracy50} />
+            <ScoreCard label="100" score={score100} accuracy={accuracy100} />
+            <ScoreCard label="200" score={score200} accuracy={accuracy200} />
           </div>
         </div>
         
         <Tabs defaultValue="50" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="50">50 Candles</TabsTrigger>
-            <TabsTrigger value="100">100 Candles</TabsTrigger>
-            <TabsTrigger value="200">200 Candles</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="50" className="text-base gap-2">
+              <Target className="w-4 h-4" /> 50
+            </TabsTrigger>
+            <TabsTrigger value="100" className="text-base gap-2">
+              <Eye className="w-4 h-4" /> 100
+            </TabsTrigger>
+            <TabsTrigger value="200" className="text-base gap-2">
+              <Zap className="w-4 h-4" /> 200
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="50">
-            <Card>
-              <CardHeader>
-                <CardTitle>EUR/USD - 50 Candles</CardTitle>
-                <CardDescription>
-                  Compare candle #{config["50"].predictionIndex + 1} with candle #{config["50"].total}
-                </CardDescription>
+            <Card className="border-primary/10">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Target className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle>EUR/USD - 50 Candles</CardTitle>
+                    <CardDescription className="mt-1">
+                      Compare candle #{config["50"].predictionIndex + 1} with candle #{config["50"].total} • {config["50"].hideCount} hidden
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <PracticeGame
@@ -502,12 +556,19 @@ export default function PracticePage() {
           </TabsContent>
           
           <TabsContent value="100">
-            <Card>
-              <CardHeader>
-                <CardTitle>EUR/USD - 100 Candles</CardTitle>
-                <CardDescription>
-                  Compare candle #{config["100"].predictionIndex + 1} with candle #{config["100"].total}
-                </CardDescription>
+            <Card className="border-primary/10">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Eye className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle>EUR/USD - 100 Candles</CardTitle>
+                    <CardDescription className="mt-1">
+                      Compare candle #{config["100"].predictionIndex + 1} with candle #{config["100"].total} • {config["100"].hideCount} hidden
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <PracticeGame
@@ -526,12 +587,19 @@ export default function PracticePage() {
           </TabsContent>
           
           <TabsContent value="200">
-            <Card>
-              <CardHeader>
-                <CardTitle>EUR/USD - 200 Candles</CardTitle>
-                <CardDescription>
-                  Compare candle #{config["200"].predictionIndex + 1} with candle #{config["200"].total}
-                </CardDescription>
+            <Card className="border-primary/10">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Zap className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle>EUR/USD - 200 Candles</CardTitle>
+                    <CardDescription className="mt-1">
+                      Compare candle #{config["200"].predictionIndex + 1} with candle #{config["200"].total} • {config["200"].hideCount} hidden
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <PracticeGame
@@ -550,18 +618,54 @@ export default function PracticePage() {
           </TabsContent>
         </Tabs>
         
-        <Card>
+        <Card className="border-primary/20">
           <CardHeader>
-            <CardTitle>How it works</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-primary" />
+              How it works
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-              <li>Choose candle count: 50, 100, or 200</li>
-              <li>Yellow line marks candle #{config["50"].predictionIndex + 1}, {config["100"].predictionIndex + 1}, or {config["200"].predictionIndex + 1}</li>
-              <li>Last 10-20 candles are hidden</li>
-              <li>If last close &gt; marked close = LONG (price went UP)</li>
-              <li>If last close &lt; marked close = SHORT (price went DOWN)</li>
-            </ol>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">1</div>
+                <div>
+                  <p className="font-medium">Choose Difficulty</p>
+                  <p className="text-sm text-muted-foreground">Select 50, 100, or 200 candles</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500 font-bold">2</div>
+                <div>
+                  <p className="font-medium">Analyze Price</p>
+                  <p className="text-sm text-muted-foreground">Yellow line marks candle #{config["50"].predictionIndex + 1}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 font-bold">3</div>
+                <div>
+                  <p className="font-medium">Predict Direction</p>
+                  <p className="text-sm text-muted-foreground">Last {config["50"].hideCount}-{config["100"].hideCount} candles hidden</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 md:col-span-2">
+                <div className="w-8 h-8 rounded-full bg-green-600/10 flex items-center justify-center text-green-600 font-bold">4</div>
+                <div>
+                  <p className="font-medium">LONG vs SHORT</p>
+                  <p className="text-sm text-muted-foreground">
+                    If last close &gt; marked close = <span className="text-green-500 font-medium">LONG (price UP)</span>. 
+                    If last close &lt; marked close = <span className="text-red-500 font-medium">SHORT (price DOWN)</span>.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">5</div>
+                <div>
+                  <p className="font-medium">Track Score</p>
+                  <p className="text-sm text-muted-foreground">Your accuracy improves over time</p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
