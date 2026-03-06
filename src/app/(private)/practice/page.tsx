@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { createChart, IChartApi, ISeriesApi, CandlestickData, Time } from "lightweight-charts";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUp, ArrowDown, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import eurUsdData from "@/db/EURUSD.json";
 
 interface Candle {
-  time: Time;
+  time: number;
   open: number;
   high: number;
   low: number;
@@ -20,8 +20,9 @@ const FOREX_PAIRS = [
 ];
 
 function parseCandles(data: any[]): Candle[] {
-  return data.map((item) => ({
-    time: item.datetime as Time,
+  const startTime = Date.now() - data.length * 5 * 60 * 1000;
+  return data.map((item, index) => ({
+    time: startTime + index * 5 * 60 * 1000,
     open: parseFloat(item.open),
     high: parseFloat(item.high),
     low: parseFloat(item.low),
@@ -31,57 +32,70 @@ function parseCandles(data: any[]): Candle[] {
 
 function ForexChart({ 
   candles, 
-  showFull,
-  containerRef 
+  showFull 
 }: { 
   candles: Candle[]; 
   showFull: boolean;
-  containerRef: React.RefObject<HTMLDivElement>;
 }) {
-  const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<any>(null);
+  const seriesRef = useRef<any>(null);
   
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || typeof window === "undefined") return;
     
-    const chart = createChart(containerRef.current, {
-      width: containerRef.current.clientWidth,
-      height: 350,
-      layout: {
-        background: { color: "transparent" },
-        textColor: "#9ca3af",
-      },
-      grid: {
-        vertLines: { color: "#374151" },
-        horzLines: { color: "#374151" },
-      },
-      crosshair: {
-        mode: 0,
-      },
-      rightPriceScale: {
-        borderColor: "#374151",
-      },
-      timeScale: {
-        borderColor: "#374151",
-        timeVisible: true,
-      },
-    });
+    const initChart = async () => {
+      const { createChart } = await import("lightweight-charts");
+      
+      if (chartRef.current) {
+        chartRef.current.remove();
+      }
     
-    const candlestickSeries = chart.addCandlestickSeries({
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderUpColor: "#22c55e",
-      borderDownColor: "#ef4444",
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
-    });
+      const chart = createChart(containerRef.current, {
+        width: containerRef.current.clientWidth,
+        height: 350,
+        layout: {
+          background: { color: "transparent" },
+          textColor: "#9ca3af",
+        },
+        grid: {
+          vertLines: { color: "#374151" },
+          horzLines: { color: "#374151" },
+        },
+        crosshair: {
+          mode: 0,
+        },
+        rightPriceScale: {
+          borderColor: "#374151",
+        },
+        timeScale: {
+          borderColor: "#374151",
+          timeVisible: true,
+        },
+      });
+      
+      const candlestickSeries = chart.addCandlestickSeries({
+        upColor: "#22c55e",
+        downColor: "#ef4444",
+        borderUpColor: "#22c55e",
+        borderDownColor: "#ef4444",
+        wickUpColor: "#22c55e",
+        wickDownColor: "#ef4444",
+      });
+      
+      chartRef.current = chart;
+      seriesRef.current = candlestickSeries;
+      
+      const visibleCandles = showFull ? candles : candles.slice(0, Math.floor(candles.length / 2));
+      candlestickSeries.setData(visibleCandles);
+      chart.timeScale().fitContent();
+    };
     
-    chartRef.current = chart;
-    seriesRef.current = candlestickSeries;
+    initChart();
     
     const handleResize = () => {
-      if (containerRef.current) {
-        chart.applyOptions({ width: containerRef.current.clientWidth });
+      if (containerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
       }
     };
     
@@ -89,23 +103,14 @@ function ForexChart({
     
     return () => {
       window.removeEventListener("resize", handleResize);
-      chart.remove();
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
     };
-  }, [containerRef]);
-  
-  useEffect(() => {
-    if (!seriesRef.current || candles.length === 0) return;
-    
-    const visibleCandles = showFull ? candles : candles.slice(0, Math.floor(candles.length / 2));
-    
-    seriesRef.current.setData(visibleCandles);
-    
-    if (chartRef.current) {
-      chartRef.current.timeScale().fitContent();
-    }
   }, [candles, showFull]);
   
-  return null;
+  return <div ref={containerRef} className="w-full h-[350px]" />;
 }
 
 export default function PracticePage() {
@@ -114,11 +119,12 @@ export default function PracticePage() {
   const [step, setStep] = useState<"predict" | "result">("predict");
   const [prediction, setPrediction] = useState<"buy" | "sell" | null>(null);
   const [score, setScore] = useState({ correct: 0, total: 0 });
-  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
     const candles = parseCandles(FOREX_PAIRS[0].data);
     setAllCandles(candles);
+    setMounted(true);
   }, []);
   
   const visibleCandles = useMemo(() => {
@@ -151,7 +157,7 @@ export default function PracticePage() {
   
   const accuracy = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
   
-  if (allCandles.length === 0) {
+  if (!mounted || allCandles.length === 0) {
     return (
       <div className="min-h-screen bg-background p-4 md:p-8 flex items-center justify-center">
         <p>Loading chart data...</p>
@@ -210,15 +216,10 @@ export default function PracticePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div 
-              ref={chartContainerRef}
-              className="bg-muted/20 rounded-lg p-2"
-              style={{ height: "350px" }}
-            >
+            <div className="bg-muted/20 rounded-lg p-2">
               <ForexChart 
                 candles={visibleCandles} 
                 showFull={step === "result"}
-                containerRef={chartContainerRef}
               />
             </div>
             
