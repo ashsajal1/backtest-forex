@@ -3,8 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
-import Navbar from "@/components/navbar";
-import Nprogress from "@/components/nprogress";
+
 import { Footer } from "@/components/footer";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -14,7 +13,8 @@ export const metadata: Metadata = {
     default: "SaaSFlow - Workflow Automation Platform for Teams",
     template: "%s | SaaSFlow",
   },
-  description: "SaaSFlow helps teams automate workflows, collaborate seamlessly, and scale their business. Join 10,000+ teams saving 20+ hours per week with intelligent automation.",
+  description:
+    "SaaSFlow helps teams automate workflows, collaborate seamlessly, and scale their business. Join 10,000+ teams saving 20+ hours per week with intelligent automation.",
   keywords: [
     "workflow automation",
     "team collaboration",
@@ -37,7 +37,8 @@ export const metadata: Metadata = {
     url: "https://saasflow.com",
     siteName: "SaaSFlow",
     title: "SaaSFlow - Workflow Automation Platform for Teams",
-    description: "Automate workflows, collaborate seamlessly, and scale your business. Join 10,000+ teams already saving time with SaaSFlow.",
+    description:
+      "Automate workflows, collaborate seamlessly, and scale your business. Join 10,000+ teams already saving time with SaaSFlow.",
     images: [
       {
         url: "/pwa-512x512.png",
@@ -50,7 +51,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "SaaSFlow - Workflow Automation Platform",
-    description: "Automate workflows, collaborate seamlessly, and scale your business. Join 10,000+ teams already saving time with SaaSFlow.",
+    description:
+      "Automate workflows, collaborate seamlessly, and scale your business. Join 10,000+ teams already saving time with SaaSFlow.",
     images: ["/pwa-512x512.png"],
     creator: "@saasflow",
   },
@@ -88,8 +90,6 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Nprogress />
-            <Navbar />
             <main className="flex-1">{children}</main>
             <Footer />
           </ThemeProvider>
