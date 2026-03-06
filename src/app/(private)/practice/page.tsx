@@ -56,14 +56,14 @@ function Chart({
   const range = maxHigh - minLow || 1;
   const padding = range * 0.1;
   
-  const width = 1000;
-  const height = 300;
+  const width = 1200;
+  const height = 400;
   const candleWidth = width / displayCandles.length;
   
   const scaleY = (value: number) => height - ((value - minLow + padding) / (range + padding * 2)) * height;
   
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[300px]">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[400px]">
       {[0, 0.25, 0.5, 0.75, 1].map((pos) => (
         <line
           key={pos}
@@ -449,8 +449,8 @@ export default function PracticePage() {
   }
   
   return (
-    <div className="min-h-screen bg-background p-4 md:p-4">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Forex Practice</h1>
