@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUp, ArrowDown, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { ArrowUp, ArrowDown, RefreshCw, CheckCircle, XCircle, ChevronRight } from "lucide-react";
 import eurUsdData from "@/db/EURUSD.json";
 
 interface Candle {
@@ -26,10 +26,12 @@ function parseCandles(data: any[]): Candle[] {
 
 function Chart({ 
   candles,
-  visibleCount
+  visibleCount,
+  revealIndex
 }: { 
   candles: Candle[];
   visibleCount: number;
+  revealIndex: number;
 }) {
   const displayCandles = candles.slice(0, visibleCount);
   
@@ -65,8 +67,13 @@ function Chart({
         const isBullish = candle.close >= candle.open;
         const color = isBullish ? "#22c55e" : "#ef4444";
         
+        const isRevealing = i >= visibleCount - revealIndex && revealIndex > 0;
+        
         return (
-          <g key={i}>
+          <g key={i} style={{
+            opacity: isRevealing ? Math.min(1, (revealIndex - (i - (visibleCount - revealIndex))) / 3) : 1,
+            transition: 'opacity 0.3s ease-out'
+          }}>
             <line
               x1={x}
               y1={scaleY(candle.high)}
@@ -86,7 +93,7 @@ function Chart({
         );
       })}
       
-      {visibleCount < candles.length && (
+      {revealIndex === 0 && visibleCount < candles.length && (
         <line
           x1={visibleCount * candleWidth}
           y1={0}
@@ -97,41 +104,79 @@ function Chart({
           strokeDasharray="5,5"
         />
       )}
+      
+      {revealIndex > 0 && (
+        <rect
+          x={(visibleCount - revealIndex) * candleWidth}
+          y={0}
+          x2={revealIndex * candleWidth}
+          height={height}
+          fill="#fbbf24"
+          fillOpacity={0.1}
+          stroke="#fbbf24"
+          strokeWidth={1}
+          strokeDasharray="3,3"
+        />
+      )}
     </svg>
   );
 }
 
 export default function PracticePage() {
   const [allCandles, setAllCandles] = useState<Candle[]>([]);
-  const [hiddenCount, setHiddenCount] = useState(36);
+  const [startIndex, setStartIndex] = useState(0);
+  const [showCount, setShowCount] = useState(120);
+  const [hideCount, setHideCount] = useState(36);
+  const [revealIndex, setRevealIndex] = useState(0);
   const [step, setStep] = useState<"predict" | "result">("predict");
   const [prediction, setPrediction] = useState<"buy" | "sell" | null>(null);
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [mounted, setMounted] = useState(false);
+  const initialized = useRef(false);
+  const [revealTimeout, setRevealTimeout] = useState<NodeJS.Timeout | null>(null);
   
-  const totalCandlesToShow = 120;
-  
-  const startNewRound = useCallback(() => {
+  const startNewRound = useCallback((useNextStart: boolean = false) => {
     const candles = parseCandles(eurUsdData.values as any[]);
     setAllCandles(candles);
-    setHiddenCount(36);
+    
+    if (useNextStart && showCount + hideCount < candles.length) {
+      setStartIndex(prev => Math.min(prev + showCount, candles.length - showCount - hideCount));
+    } else {
+      const maxStart = candles.length - showCount - hideCount - 1;
+      const newStart = Math.floor(Math.random() * Math.max(1, maxStart));
+      setStartIndex(newStart);
+    }
+    
+    setRevealIndex(0);
     setStep("predict");
     setPrediction(null);
-  }, []);
+    
+    if (revealTimeout) {
+      clearTimeout(revealTimeout);
+      setRevealTimeout(null);
+    }
+  }, [showCount, hideCount, revealTimeout]);
   
   useEffect(() => {
-    setMounted(true);
-    startNewRound();
+    if (!initialized.current) {
+      initialized.current = true;
+      setMounted(true);
+      startNewRound();
+    }
   }, [startNewRound]);
+  
+  useEffect(() => {
+    return () => {
+      if (revealTimeout) clearTimeout(revealTimeout);
+    };
+  }, [revealTimeout]);
   
   const visibleCandles = useMemo(() => {
     if (allCandles.length === 0) return [];
-    return allCandles.slice(0, totalCandlesToShow);
-  }, [allCandles, totalCandlesToShow]);
+    return allCandles.slice(startIndex, startIndex + showCount + hideCount);
+  }, [allCandles, startIndex, showCount, hideCount]);
   
-  const visibleCount = step === "predict" 
-    ? totalCandlesToShow - hiddenCount 
-    : totalCandlesToShow;
+  const visibleCount = showCount;
   
   const lastVisibleCandle = visibleCandles[visibleCount - 1];
   const firstHiddenCandle = visibleCandles[visibleCount];
@@ -139,22 +184,6 @@ export default function PracticePage() {
   const actualDirection = firstHiddenCandle && lastVisibleCandle
     ? (firstHiddenCandle.close > lastVisibleCandle.close ? "buy" : "sell")
     : null;
-  
-  const hiddenCandles = useMemo(() => {
-    if (step !== "result") return [];
-    return visibleCandles.slice(visibleCount);
-  }, [step, visibleCandles, visibleCount]);
-  
-  const hiddenResult = useMemo(() => {
-    if (hiddenCandles.length === 0) return null;
-    
-    const firstHidden = hiddenCandles[0];
-    const lastBeforeHidden = visibleCandles[visibleCount - 1];
-    const direction = firstHidden.close > lastBeforeHidden.close ? "buy" : "sell";
-    const pips = Math.abs(firstHidden.close - lastBeforeHidden.close) * 10000;
-    
-    return { direction, pips: pips.toFixed(1) };
-  }, [hiddenCandles, visibleCandles, visibleCount]);
   
   const handlePredict = useCallback((direction: "buy" | "sell") => {
     if (!actualDirection) return;
@@ -164,11 +193,32 @@ export default function PracticePage() {
       correct: prev.correct + (direction === actualDirection ? 1 : 0),
       total: prev.total + 1,
     }));
-  }, [actualDirection]);
+    
+    let reveal = 0;
+    const revealNext = () => {
+      reveal++;
+      setRevealIndex(reveal);
+      if (reveal < hideCount) {
+        const timeout = setTimeout(revealNext, 100);
+        setRevealTimeout(timeout);
+      }
+    };
+    
+    const timeout = setTimeout(revealNext, 100);
+    setRevealTimeout(timeout);
+  }, [actualDirection, hideCount]);
   
   const handleNext = useCallback(() => {
-    startNewRound();
+    startNewRound(true);
   }, [startNewRound]);
+  
+  const handleSkip = useCallback(() => {
+    if (revealTimeout) {
+      clearTimeout(revealTimeout);
+      setRevealTimeout(null);
+    }
+    setRevealIndex(hideCount);
+  }, [hideCount, revealTimeout]);
   
   const accuracy = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
   
@@ -186,7 +236,7 @@ export default function PracticePage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Forex Practice</h1>
-            <p className="text-muted-foreground">Predict the next 3 hours of price movement</p>
+            <p className="text-muted-foreground">Predict the next {hideCount} candles direction</p>
           </div>
           
           <div className="flex items-center gap-4">
@@ -214,7 +264,7 @@ export default function PracticePage() {
               <div>
                 <CardTitle className="text-2xl">EUR/USD</CardTitle>
                 <CardDescription>
-                  10 hours shown • 3 hours hidden ({hiddenCount} candles)
+                  {showCount} candles shown • {hideCount} candles hidden
                 </CardDescription>
               </div>
               <div className="text-right">
@@ -224,7 +274,7 @@ export default function PracticePage() {
                       {lastVisibleCandle.close.toFixed(5)}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Last visible close
+                      Last visible
                     </div>
                   </>
                 )}
@@ -236,13 +286,14 @@ export default function PracticePage() {
               <Chart 
                 candles={visibleCandles}
                 visibleCount={visibleCount}
+                revealIndex={revealIndex}
               />
             </div>
             
             {step === "predict" && actualDirection && (
               <div className="mt-6 space-y-4">
                 <p className="text-center text-muted-foreground">
-                  Predict whether the next 3 hours will be bullish or bearish:
+                  Predict the next {hideCount} candles ({hideCount * 5 / 60} hours):
                 </p>
                 <div className="flex justify-center gap-4">
                   <Button
@@ -251,7 +302,7 @@ export default function PracticePage() {
                     onClick={() => handlePredict("buy")}
                   >
                     <ArrowUp className="w-5 h-5" />
-                    BULLISH (BUY)
+                    BULLISH
                   </Button>
                   <Button
                     size="lg"
@@ -259,46 +310,53 @@ export default function PracticePage() {
                     onClick={() => handlePredict("sell")}
                   >
                     <ArrowDown className="w-5 h-5" />
-                    BEARISH (SELL)
+                    BEARISH
                   </Button>
                 </div>
               </div>
             )}
             
-            {step === "result" && hiddenResult && (
+            {step === "result" && (
               <div className="mt-6 space-y-4">
                 <div className={`text-center p-4 rounded-lg ${
-                  prediction === hiddenResult.direction 
+                  prediction === actualDirection 
                     ? "bg-green-500/20 text-green-500" 
                     : "bg-red-500/20 text-red-500"
                 }`}>
                   <div className="flex items-center justify-center gap-2 mb-2">
-                    {prediction === hiddenResult.direction ? (
+                    {prediction === actualDirection ? (
                       <CheckCircle className="w-6 h-6" />
                     ) : (
                       <XCircle className="w-6 h-6" />
                     )}
                     <span className="text-xl font-bold">
-                      {prediction === hiddenResult.direction ? "Correct!" : "Wrong!"}
+                      {prediction === actualDirection ? "Correct!" : "Wrong!"}
                     </span>
                   </div>
                   <p>
-                    The first hidden candle was{" "}
+                    First hidden candle was{" "}
                     <span className="font-bold">
-                      {hiddenResult.direction.toUpperCase()}
+                      {actualDirection?.toUpperCase()}
                     </span>
-                    {" "}({hiddenResult.pips} pips from last visible)
                   </p>
                 </div>
                 
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-4">
+                  <Button 
+                    size="lg" 
+                    onClick={handleSkip}
+                    variant="outline"
+                    disabled={revealIndex >= hideCount}
+                  >
+                    Skip Animation
+                  </Button>
                   <Button 
                     size="lg" 
                     onClick={handleNext} 
                     className="gap-2"
                   >
-                    <RefreshCw className="w-5 h-5" />
-                    Next Chart
+                    <ChevronRight className="w-5 h-5" />
+                    Next
                   </Button>
                 </div>
               </div>
@@ -312,10 +370,11 @@ export default function PracticePage() {
           </CardHeader>
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-              <li>10 hours of EUR/USD 5-minute candles are shown</li>
-              <li>The last 3 hours (36 candles) are hidden</li>
+              <li>EUR/USD 5-minute candles from random range</li>
+              <li>Last {hideCount} candles ({hideCount * 5 / 60} hours) are hidden</li>
               <li>Predict whether the hidden area will be bullish or bearish</li>
-              <li>See the hidden candles and check if you were right</li>
+              <li>Watch the hidden candles reveal one by one</li>
+              <li>Click Next for another prediction</li>
             </ol>
           </CardContent>
         </Card>
