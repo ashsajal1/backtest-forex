@@ -472,6 +472,7 @@ export default function PracticePage() {
                   allCandles={allCandles}
                   startIndex={startIndex50}
                   onNext={advance50}
+                  key={startIndex50}
                 />
               </CardContent>
             </Card>
@@ -495,6 +496,7 @@ export default function PracticePage() {
                   allCandles={allCandles}
                   startIndex={startIndex100}
                   onNext={advance100}
+                  key={startIndex100}
                 />
               </CardContent>
             </Card>
@@ -518,6 +520,7 @@ export default function PracticePage() {
                   allCandles={allCandles}
                   startIndex={startIndex200}
                   onNext={advance200}
+                  key={startIndex200}
                 />
               </CardContent>
             </Card>
