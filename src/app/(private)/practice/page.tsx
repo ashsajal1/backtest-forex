@@ -93,16 +93,36 @@ function Chart({
         );
       })}
       
-      {revealIndex === 0 && visibleCount < candles.length && (
-        <line
-          x1={visibleCount * candleWidth}
-          y1={0}
-          x2={visibleCount * candleWidth}
-          y2={height}
-          stroke="#fbbf24"
-          strokeWidth={2}
-          strokeDasharray="5,5"
-        />
+      {(revealIndex === 0 || revealIndex > 0) && visibleCount < candles.length && (
+        <g>
+          <line
+            x1={78 * candleWidth}
+            y1={0}
+            x2={78 * candleWidth}
+            y2={height}
+            stroke="#fbbf24"
+            strokeWidth={3}
+            strokeDasharray="8,4"
+          />
+          <rect
+            x={78 * candleWidth - 60}
+            y={10}
+            width={120}
+            height={24}
+            rx={4}
+            fill="#fbbf24"
+          />
+          <text
+            x={78 * candleWidth}
+            y={26}
+            textAnchor="middle"
+            fill="#000"
+            fontSize={12}
+            fontWeight="bold"
+          >
+            Prediction Start
+          </text>
+        </g>
       )}
       
       {revealIndex > 0 && (
