@@ -318,7 +318,9 @@ function PracticeGame({
               </span>
             </div>
             <p>
-              Price went <span className="font-bold">{actualDirection?.toUpperCase()}</span> ({priceChange} pips)
+              If marked close &gt; yellow line close = LONG<br/>
+              If marked close &lt; yellow line close = SHORT<br/>
+              Result: <span className="font-bold">{actualDirection?.toUpperCase()}</span> ({priceChange} pips)
             </p>
           </div>
           
@@ -529,11 +531,10 @@ export default function PracticePage() {
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
               <li>Choose candle count: 50, 100, or 200</li>
-              <li>Yellow line marks the prediction point (candle #{config["50"].predictionIndex + 1}, {config["100"].predictionIndex + 1}, or {config["200"].predictionIndex + 1})</li>
+              <li>Yellow line marks the prediction point</li>
               <li>Last 10-20 candles are hidden</li>
-              <li>Predict: will price go UP (LONG) or DOWN (SHORT)?</li>
-              <li>If marked close {'<'} last close = LONG</li>
-              <li>If marked close {'>'} last close = SHORT</li>
+              <li>If last close &gt; yellow line close = LONG</li>
+              <li>If last close &lt; yellow line close = SHORT</li>
             </ol>
           </CardContent>
         </Card>
