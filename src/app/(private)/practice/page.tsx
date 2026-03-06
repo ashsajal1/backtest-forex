@@ -32,12 +32,16 @@ function Chart({
   candles,
   visibleCount,
   revealCount,
-  markIndex
+  markIndex,
+  startTime,
+  endTime
 }: { 
   candles: Candle[];
   visibleCount: number;
   revealCount: number;
   markIndex: number;
+  startTime?: string;
+  endTime?: string;
 }) {
   const displayCount = visibleCount + revealCount;
   const displayCandles = candles.slice(0, displayCount);
@@ -143,6 +147,9 @@ function Chart({
           strokeDasharray="3,3"
         />
       )}
+      
+      <text x="5" y="15" fill="#9ca3af" fontSize="10">Start: {startTime || "-"}</text>
+      <text x={width - 90} y="15" fill="#9ca3af" fontSize="10">End: {endTime || "-"}</text>
     </svg>
   );
 }
@@ -259,6 +266,8 @@ function PracticeGame({
           visibleCount={predictionIndex + 1}
           revealCount={revealCount}
           markIndex={predictionIndex}
+          startTime={visibleCandles[0]?.datetime}
+          endTime={visibleCandles[visibleCandles.length - 1]?.datetime}
         />
       </div>
       
