@@ -17,7 +17,12 @@ interface Candle {
 }
 
 function parseCandles(data: any[]): Candle[] {
-  const reversed = [...data].reverse();
+  const filtered = data.filter(item => {
+    const date = new Date(item.datetime);
+    const day = date.getDay();
+    return day !== 0 && day !== 6;
+  });
+  const reversed = [...filtered].reverse();
   return reversed.map((item, index) => ({
     time: index,
     open: parseFloat(item.open),
