@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { createChart, IChartApi, ISeriesApi, CandlestickData, Time } from "lightweight-charts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUp, ArrowDown, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import eurUsdData from "@/db/EURUSD.json";
 
 interface Candle {
-  time: number;
-  datetime: string;
+  time: Time;
   open: number;
   high: number;
   low: number;
@@ -20,9 +20,8 @@ const FOREX_PAIRS = [
 ];
 
 function parseCandles(data: any[]): Candle[] {
-  return data.map((item, index) => ({
-    time: index,
-    datetime: item.datetime,
+  return data.map((item) => ({
+    time: item.datetime as Time,
     open: parseFloat(item.open),
     high: parseFloat(item.high),
     low: parseFloat(item.low),
@@ -30,79 +29,83 @@ function parseCandles(data: any[]): Candle[] {
   }));
 }
 
-function Chart({ candles, showFull = false, previewEnd = 0 }: { candles: Candle[]; showFull?: boolean; previewEnd?: number }) {
-  const displayCandles = showFull ? candles : candles.slice(0, Math.floor(candles.length * previewEnd));
+function ForexChart({ 
+  candles, 
+  showFull,
+  containerRef 
+}: { 
+  candles: Candle[]; 
+  showFull: boolean;
+  containerRef: React.RefObject<HTMLDivElement>;
+}) {
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   
-  if (displayCandles.length === 0) return null;
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const chart = createChart(containerRef.current, {
+      width: containerRef.current.clientWidth,
+      height: 350,
+      layout: {
+        background: { color: "transparent" },
+        textColor: "#9ca3af",
+      },
+      grid: {
+        vertLines: { color: "#374151" },
+        horzLines: { color: "#374151" },
+      },
+      crosshair: {
+        mode: 0,
+      },
+      rightPriceScale: {
+        borderColor: "#374151",
+      },
+      timeScale: {
+        borderColor: "#374151",
+        timeVisible: true,
+      },
+    });
+    
+    const candlestickSeries = chart.addCandlestickSeries({
+      upColor: "#22c55e",
+      downColor: "#ef4444",
+      borderUpColor: "#22c55e",
+      borderDownColor: "#ef4444",
+      wickUpColor: "#22c55e",
+      wickDownColor: "#ef4444",
+    });
+    
+    chartRef.current = chart;
+    seriesRef.current = candlestickSeries;
+    
+    const handleResize = () => {
+      if (containerRef.current) {
+        chart.applyOptions({ width: containerRef.current.clientWidth });
+      }
+    };
+    
+    window.addEventListener("resize", handleResize);
+    
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      chart.remove();
+    };
+  }, [containerRef]);
   
-  const minLow = Math.min(...displayCandles.map(c => c.low));
-  const maxHigh = Math.max(...displayCandles.map(c => c.high));
-  const range = maxHigh - minLow || 1;
-  const padding = range * 0.1;
+  useEffect(() => {
+    if (!seriesRef.current || candles.length === 0) return;
+    
+    const visibleCandles = showFull ? candles : candles.slice(0, Math.floor(candles.length / 2));
+    
+    seriesRef.current.setData(visibleCandles);
+    
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent();
+    }
+  }, [candles, showFull]);
   
-  const width = 800;
-  const height = 300;
-  const candleWidth = width / displayCandles.length;
-  
-  const scaleY = (value: number) => height - ((value - minLow + padding) / (range + padding * 2)) * height;
-  
-  const lastCandle = displayCandles[displayCandles.length - 1];
-  const isGreen = lastCandle.close >= lastCandle.open;
-  
-  return (
-    <div className="relative w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[300px]">
-        {displayCandles.map((candle, i) => {
-          const x = i * candleWidth + candleWidth / 2;
-          const isBullish = candle.close >= candle.open;
-          const color = isBullish ? "#22c55e" : "#ef4444";
-          
-          return (
-            <g key={i}>
-              <line
-                x1={x}
-                y1={scaleY(candle.high)}
-                x2={x}
-                y2={scaleY(candle.low)}
-                stroke={color}
-                strokeWidth={1}
-              />
-              <rect
-                x={i * candleWidth + 1}
-                y={scaleY(Math.max(candle.open, candle.close))}
-                width={Math.max(candleWidth - 2, 2)}
-                height={Math.max(1, Math.abs(scaleY(candle.open) - scaleY(candle.close)))}
-                fill={color}
-              />
-            </g>
-          );
-        })}
-        
-        {!showFull && (
-          <line
-            x1={displayCandles.length * candleWidth}
-            y1={0}
-            x2={displayCandles.length * candleWidth}
-            y2={height}
-            stroke="#6b7280"
-            strokeWidth={2}
-            strokeDasharray="5,5"
-          />
-        )}
-      </svg>
-      
-      {showFull && (
-        <div className="absolute bottom-2 right-2 flex items-center gap-2 text-sm font-medium">
-          <span className={isGreen ? "text-green-500" : "text-red-500"}>
-            {isGreen ? "Bullish" : "Bearish"}
-          </span>
-          <span className="text-muted-foreground">
-            {(lastCandle.close - lastCandle.open).toFixed(5)}
-          </span>
-        </div>
-      )}
-    </div>
-  );
+  return null;
 }
 
 export default function PracticePage() {
@@ -111,22 +114,20 @@ export default function PracticePage() {
   const [step, setStep] = useState<"predict" | "result">("predict");
   const [prediction, setPrediction] = useState<"buy" | "sell" | null>(null);
   const [score, setScore] = useState({ correct: 0, total: 0 });
-  
-  const previewEnd = 0.7;
+  const chartContainerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     const candles = parseCandles(FOREX_PAIRS[0].data);
     setAllCandles(candles);
   }, []);
   
-  const currentCandles = useMemo(() => {
+  const visibleCandles = useMemo(() => {
     if (allCandles.length === 0) return [];
-    const start = Math.max(0, currentIndex - 50);
-    return allCandles.slice(start, currentIndex + 1);
+    return allCandles.slice(0, currentIndex + 1);
   }, [allCandles, currentIndex]);
   
-  const lastCandle = currentCandles[currentCandles.length - 1];
-  const secondLastCandle = currentCandles[currentCandles.length - 2];
+  const lastCandle = visibleCandles[visibleCandles.length - 1];
+  const secondLastCandle = visibleCandles[visibleCandles.length - 2];
   
   const actualDirection = lastCandle && secondLastCandle 
     ? (lastCandle.close > secondLastCandle.close ? "buy" : "sell")
@@ -209,11 +210,15 @@ export default function PracticePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="bg-muted/20 rounded-lg p-4">
-              <Chart 
-                candles={currentCandles} 
-                showFull={step === "result"} 
-                previewEnd={previewEnd} 
+            <div 
+              ref={chartContainerRef}
+              className="bg-muted/20 rounded-lg p-2"
+              style={{ height: "350px" }}
+            >
+              <ForexChart 
+                candles={visibleCandles} 
+                showFull={step === "result"}
+                containerRef={chartContainerRef}
               />
             </div>
             
@@ -290,7 +295,7 @@ export default function PracticePage() {
           </CardHeader>
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-              <li>A EUR/USD 5-minute chart is displayed (70% visible)</li>
+              <li>A EUR/USD 5-minute chart is displayed (50% visible)</li>
               <li>Analyze the price pattern and trend</li>
               <li>Predict whether the next candle will be bullish (BUY) or bearish (SELL)</li>
               <li>See if you were correct and learn from each prediction</li>
