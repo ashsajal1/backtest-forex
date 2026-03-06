@@ -32,9 +32,7 @@ function Chart({
   candles,
   visibleCount,
   revealCount,
-  markIndex,
-  startTime,
-  endTime
+  markIndex
 }: { 
   candles: Candle[];
   visibleCount: number;
@@ -79,7 +77,6 @@ function Chart({
         const color = isBullish ? "#22c55e" : "#ef4444";
         
         const isHidden = i >= visibleCount;
-        const isRevealed = isHidden && i < visibleCount + revealCount;
         
         let opacity = 1;
         if (isHidden && revealCount > 0) {
@@ -148,10 +145,22 @@ function Chart({
         />
       )}
       
-      <text x="5" y="15" fill="#9ca3af" fontSize="10">Start: {startTime || "-"}</text>
-      <text x={width - 90} y="15" fill="#9ca3af" fontSize="10">End: {endTime || "-"}</text>
+      <text x="5" y="15" fill="#9ca3af" fontSize="10">{displayCandles[0]?.datetime || "-"}</text>
+      <text x={width - 100} y="15" fill="#9ca3af" fontSize="10">{displayCandles[displayCandles.length - 1]?.datetime || "-"}</text>
     </svg>
   );
+}
+
+interface PracticeGameProps {
+  totalCandles: number;
+  predictionIndex: number;
+  hideCount: number;
+  score: { correct: number; total: number };
+  setScore: React.Dispatch<React.SetStateAction<{ correct: number; total: number }>>;
+  allCandles: Candle[];
+  startIndex: number;
+  onNext: () => void;
+  gameKey: number;
 }
 
 function PracticeGame({
@@ -163,31 +172,18 @@ function PracticeGame({
   allCandles,
   startIndex,
   onNext,
-}: {
-  totalCandles: number;
-  predictionIndex: number;
-  hideCount: number;
-  score: { correct: number; total: number };
-  setScore: React.Dispatch<React.SetStateAction<{ correct: number; total: number }>>;
-  allCandles: Candle[];
-  startIndex: number;
-  onNext: () => void;
-}) {
+  gameKey,
+}: PracticeGameProps) {
   const [revealCount, setRevealCount] = useState(0);
   const [step, setStep] = useState<"predict" | "result">("predict");
   const [prediction, setPrediction] = useState<"buy" | "sell" | null>(null);
   const [revealTimeout, setRevealTimeout] = useState<NodeJS.Timeout | null>(null);
   
-  const resetRound = useCallback(() => {
+  useEffect(() => {
     setRevealCount(0);
     setStep("predict");
     setPrediction(null);
-    if (revealTimeout) {
-      clearTimeout(revealTimeout);
-      setRevealTimeout(null);
-    }
-    onNext();
-  }, [revealTimeout, onNext]);
+  }, [gameKey]);
   
   useEffect(() => {
     return () => {
@@ -200,15 +196,15 @@ function PracticeGame({
     return allCandles.slice(startIndex, startIndex + totalCandles + hideCount);
   }, [allCandles, startIndex, totalCandles, hideCount]);
   
-  const predictionCandle = visibleCandles[predictionIndex];
-  const lastCandle = visibleCandles[visibleCandles.length - 1];
+  const markedCandle = visibleCandles[predictionIndex];
+  const lastCandle = visibleCandles[totalCandles - 1];
   
-  const actualDirection = predictionCandle && lastCandle
-    ? (lastCandle.close > predictionCandle.close ? "buy" : "sell")
+  const actualDirection = markedCandle && lastCandle
+    ? (lastCandle.close > markedCandle.close ? "buy" : "sell")
     : null;
   
-  const priceChange = predictionCandle && lastCandle
-    ? ((lastCandle.close - predictionCandle.close) * 10000).toFixed(1)
+  const priceChange = markedCandle && lastCandle
+    ? ((lastCandle.close - markedCandle.close) * 10000).toFixed(1)
     : null;
   
   const handlePredict = useCallback((direction: "buy" | "sell") => {
@@ -242,6 +238,14 @@ function PracticeGame({
     setRevealCount(hideCount);
   }, [hideCount, revealTimeout]);
   
+  const handleNext = useCallback(() => {
+    if (revealTimeout) {
+      clearTimeout(revealTimeout);
+      setRevealTimeout(null);
+    }
+    onNext();
+  }, [onNext, revealTimeout]);
+  
   if (visibleCandles.length === 0) {
     return <div className="p-8 text-center">Loading...</div>;
   }
@@ -249,14 +253,26 @@ function PracticeGame({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-right">
-          {predictionCandle && (
+        <div>
+          {markedCandle && (
             <>
-              <div className="text-2xl font-mono font-bold">
-                {predictionCandle.close.toFixed(5)}
+              <div className="text-lg font-mono">
+                Marked: {markedCandle.close.toFixed(5)}
               </div>
-              <div className="text-sm text-yellow-500">
-                @ candle #{predictionIndex + 1}
+              <div className="text-xs text-yellow-500">
+                @ candle #{predictionIndex + 1} ({markedCandle.datetime})
+              </div>
+            </>
+          )}
+        </div>
+        <div className="text-right">
+          {lastCandle && step === "result" && (
+            <>
+              <div className="text-lg font-mono">
+                Last: {lastCandle.close.toFixed(5)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                @ candle #{totalCandles} ({lastCandle.datetime})
               </div>
             </>
           )}
@@ -269,15 +285,13 @@ function PracticeGame({
           visibleCount={predictionIndex + 1}
           revealCount={revealCount}
           markIndex={predictionIndex}
-          startTime={visibleCandles[0]?.datetime}
-          endTime={visibleCandles[visibleCandles.length - 1]?.datetime}
         />
       </div>
       
       {step === "predict" && actualDirection && (
         <div className="mt-6 space-y-4">
           <p className="text-center text-muted-foreground">
-            Will price go UP or DOWN from the yellow line? ({hideCount} candles / {hideCount * 5} min)
+            Compare candle #{predictionIndex + 1} ({markedCandle?.close.toFixed(5)}) with candle #{totalCandles}
           </p>
           <div className="flex justify-center gap-4">
             <Button
@@ -286,7 +300,7 @@ function PracticeGame({
               onClick={() => handlePredict("buy")}
             >
               <ArrowUp className="w-5 h-5" />
-              LONG (UP)
+              LONG
             </Button>
             <Button
               size="lg"
@@ -294,7 +308,7 @@ function PracticeGame({
               onClick={() => handlePredict("sell")}
             >
               <ArrowDown className="w-5 h-5" />
-              SHORT (DOWN)
+              SHORT
             </Button>
           </div>
         </div>
@@ -317,10 +331,9 @@ function PracticeGame({
                 {prediction === actualDirection ? "Correct!" : "Wrong!"}
               </span>
             </div>
-            <p>
-              If marked close &gt; yellow line close = LONG<br/>
-              If marked close &lt; yellow line close = SHORT<br/>
-              Result: <span className="font-bold">{actualDirection?.toUpperCase()}</span> ({priceChange} pips)
+            <p className="text-sm">
+              {markedCandle?.close.toFixed(5)} → {lastCandle?.close.toFixed(5)} = {priceChange} pips<br/>
+              <span className="font-bold">{actualDirection?.toUpperCase()}</span> ({actualDirection === "buy" ? "price UP" : "price DOWN"})
             </p>
           </div>
           
@@ -335,7 +348,7 @@ function PracticeGame({
             </Button>
             <Button 
               size="lg" 
-              onClick={resetRound}
+              onClick={handleNext}
               className="gap-2"
             >
               <ChevronRight className="w-5 h-5" />
@@ -353,11 +366,13 @@ export default function PracticePage() {
   const [startIndex50, setStartIndex50] = useState(0);
   const [startIndex100, setStartIndex100] = useState(0);
   const [startIndex200, setStartIndex200] = useState(0);
+  const [gameKey50, setGameKey50] = useState(0);
+  const [gameKey100, setGameKey100] = useState(0);
+  const [gameKey200, setGameKey200] = useState(0);
   const [score50, setScore50] = useState({ correct: 0, total: 0 });
   const [score100, setScore100] = useState({ correct: 0, total: 0 });
   const [score200, setScore200] = useState({ correct: 0, total: 0 });
   const [mounted, setMounted] = useState(false);
-  const initialized = useRef(false);
   
   const config = {
     "50": { total: 50, predictionIndex: 39, hideCount: 10 },
@@ -393,6 +408,7 @@ export default function PracticePage() {
       }
       return next;
     });
+    setGameKey50(k => k + 1);
   }, [allCandles.length]);
   
   const advance100 = useCallback(() => {
@@ -404,6 +420,7 @@ export default function PracticePage() {
       }
       return next;
     });
+    setGameKey100(k => k + 1);
   }, [allCandles.length]);
   
   const advance200 = useCallback(() => {
@@ -415,6 +432,7 @@ export default function PracticePage() {
       }
       return next;
     });
+    setGameKey200(k => k + 1);
   }, [allCandles.length]);
   
   if (!mounted || allCandles.length === 0) {
@@ -431,7 +449,7 @@ export default function PracticePage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">Forex Practice</h1>
-            <p className="text-muted-foreground">Predict price direction from marked candle</p>
+            <p className="text-muted-foreground">Compare marked candle with last candle</p>
           </div>
           
           <div className="flex items-center gap-2">
@@ -459,7 +477,7 @@ export default function PracticePage() {
               <CardHeader>
                 <CardTitle>EUR/USD - 50 Candles</CardTitle>
                 <CardDescription>
-                  {config["50"].predictionIndex + 1} candles shown • {config["50"].hideCount} hidden • Yellow line marks candle #{config["50"].predictionIndex + 1}
+                  Compare candle #{config["50"].predictionIndex + 1} with candle #{config["50"].total}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -472,7 +490,7 @@ export default function PracticePage() {
                   allCandles={allCandles}
                   startIndex={startIndex50}
                   onNext={advance50}
-                  key={startIndex50}
+                  gameKey={gameKey50}
                 />
               </CardContent>
             </Card>
@@ -483,7 +501,7 @@ export default function PracticePage() {
               <CardHeader>
                 <CardTitle>EUR/USD - 100 Candles</CardTitle>
                 <CardDescription>
-                  {config["100"].predictionIndex + 1} candles shown • {config["100"].hideCount} hidden • Yellow line marks candle #{config["100"].predictionIndex + 1}
+                  Compare candle #{config["100"].predictionIndex + 1} with candle #{config["100"].total}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -496,7 +514,7 @@ export default function PracticePage() {
                   allCandles={allCandles}
                   startIndex={startIndex100}
                   onNext={advance100}
-                  key={startIndex100}
+                  gameKey={gameKey100}
                 />
               </CardContent>
             </Card>
@@ -507,7 +525,7 @@ export default function PracticePage() {
               <CardHeader>
                 <CardTitle>EUR/USD - 200 Candles</CardTitle>
                 <CardDescription>
-                  {config["200"].predictionIndex + 1} candles shown • {config["200"].hideCount} hidden • Yellow line marks candle #{config["200"].predictionIndex + 1}
+                  Compare candle #{config["200"].predictionIndex + 1} with candle #{config["200"].total}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -520,7 +538,7 @@ export default function PracticePage() {
                   allCandles={allCandles}
                   startIndex={startIndex200}
                   onNext={advance200}
-                  key={startIndex200}
+                  gameKey={gameKey200}
                 />
               </CardContent>
             </Card>
@@ -534,10 +552,10 @@ export default function PracticePage() {
           <CardContent>
             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
               <li>Choose candle count: 50, 100, or 200</li>
-              <li>Yellow line marks the prediction point</li>
+              <li>Yellow line marks candle #{config["50"].predictionIndex + 1}, {config["100"].predictionIndex + 1}, or {config["200"].predictionIndex + 1}</li>
               <li>Last 10-20 candles are hidden</li>
-              <li>If last close &gt; yellow line close = LONG</li>
-              <li>If last close &lt; yellow line close = SHORT</li>
+              <li>If last close &gt; marked close = LONG (price went UP)</li>
+              <li>If last close &lt; marked close = SHORT (price went DOWN)</li>
             </ol>
           </CardContent>
         </Card>
