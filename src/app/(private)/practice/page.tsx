@@ -209,7 +209,7 @@ export default function PracticePage() {
   }, [actualDirection, hideCount]);
   
   const handleNext = useCallback(() => {
-    startNewRound(true);
+    startNewRound(false);
   }, [startNewRound]);
   
   const handleSkip = useCallback(() => {
