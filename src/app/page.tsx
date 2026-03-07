@@ -54,6 +54,7 @@ interface SwingPoint {
   index: number;
   type: "high" | "low";
   price: number;
+  label: "HH" | "HL" | "LH" | "LL" | null;
 }
 
 interface StructureData {
@@ -66,6 +67,8 @@ function detectStructure(candles: Candle[]): StructureData {
   const swings: SwingPoint[] = [];
   if (candles.length < 5) return { markers, swings };
 
+  let prevSwingHigh = -1;
+  let prevSwingLow = -1;
   let swingHigh = -1;
   let swingLow = -1;
   let lastDirection: "up" | "down" | null = null;
@@ -79,7 +82,14 @@ function detectStructure(candles: Candle[]): StructureData {
     const isSwingLow = curr.low < prev.low && curr.low < next.low && curr.low < candles[i - 2].low && curr.low < candles[i + 2].low;
 
     if (isSwingHigh) {
-      swings.push({ index: i, type: "high", price: curr.high });
+      let label: "HH" | "LH" | null = null;
+      if (swingHigh !== -1 && curr.high > candles[swingHigh].high) {
+        label = "HH";
+      } else if (swingHigh !== -1) {
+        label = "LH";
+      }
+      swings.push({ index: i, type: "high", price: curr.high, label });
+      
       if (swingLow !== -1 && curr.high > candles[swingLow].high) {
         if (lastDirection === "down") {
           markers.push({ index: i, type: "CHoCH", direction: "bullish" });
@@ -88,11 +98,19 @@ function detectStructure(candles: Candle[]): StructureData {
         }
         lastDirection = "up";
       }
+      prevSwingHigh = swingHigh;
       swingHigh = i;
     }
 
     if (isSwingLow) {
-      swings.push({ index: i, type: "low", price: curr.low });
+      let label: "HL" | "LL" | null = null;
+      if (swingLow !== -1 && curr.low > candles[swingLow].low) {
+        label = "HL";
+      } else if (swingLow !== -1) {
+        label = "LL";
+      }
+      swings.push({ index: i, type: "low", price: curr.low, label });
+      
       if (swingHigh !== -1 && curr.low < candles[swingHigh].low) {
         if (lastDirection === "up") {
           markers.push({ index: i, type: "CHoCH", direction: "bearish" });
@@ -101,6 +119,7 @@ function detectStructure(candles: Candle[]): StructureData {
         }
         lastDirection = "down";
       }
+      prevSwingLow = swingLow;
       swingLow = i;
     }
   }
@@ -449,6 +468,65 @@ function PracticeGame({
     onNext();
   }, [onNext, revealTimeout]);
 
+  const explanation = useMemo(() => {
+    if (!markedCandle || !lastCandle || step !== "result") return null;
+
+    const swings = structureData.swings;
+    const markedIdx = predictionIndex;
+    
+    const swingsBeforeMarked = swings.filter(s => s.index < markedIdx);
+    const swingsAfterMarked = swings.filter(s => s.index >= markedIdx && s.index < totalCandles);
+    
+    const lastSwingBefore = swingsBeforeMarked[swingsBeforeMarked.length - 1];
+    const firstSwingAfter = swingsAfterMarked[0];
+    
+    const hasHH = swingsBeforeMarked.some(s => s.label === "HH");
+    const hasHL = swingsBeforeMarked.some(s => s.label === "HL");
+    const hasLH = swingsBeforeMarked.some(s => s.label === "LH");
+    const hasLL = swingsBeforeMarked.some(s => s.label === "LL");
+    
+    const isBullish = actualDirection === "buy";
+    const correct = prediction === actualDirection;
+    
+    let reason = "";
+    
+    if (correct) {
+      if (isBullish) {
+        if (hasHH && hasHL) {
+          reason = "Bullish structure confirmed: Higher High (HH) and Higher Low (HL) formed. Price broke above previous swing high.";
+        } else if (hasHL) {
+          reason = "Bullish move: Higher Low (HL) held as support. Price moved up from the HL.";
+        } else {
+          reason = "Price moved up from marked candle. Look for HH/HL formation for bullish setups.";
+        }
+      } else {
+        if (hasLH && hasLL) {
+          reason = "Bearish structure confirmed: Lower High (LH) and Lower Low (LL) formed. Price broke below previous swing low.";
+        } else if (hasLL) {
+          reason = "Bearish move: Lower Low (LL) formed as resistance failed. Price dropped from the LH.";
+        } else {
+          reason = "Price moved down from marked candle. Look for LH/LL formation for bearish setups.";
+        }
+      }
+    } else {
+      if (isBullish) {
+        if (hasLH || hasLL) {
+          reason = "Failed bullish move: Despite some structure, LH or LL formed indicating bearish pressure.";
+        } else {
+          reason = "Price didn't follow bullish structure. Market may be in consolidation or reversed.";
+        }
+      } else {
+        if (hasHH || hasHL) {
+          reason = "Failed bearish move: Despite some structure, HH or HL formed indicating bullish pressure.";
+        } else {
+          reason = "Price didn't follow bearish structure. Market may be in consolidation or reversed.";
+        }
+      }
+    }
+    
+    return { reason, hasHH, hasHL, hasLH, hasLL, swingsAfterMarked };
+  }, [markedCandle, lastCandle, step, structureData, predictionIndex, totalCandles, actualDirection, prediction]);
+
   if (visibleCandles.length === 0) {
     return <div className="p-8 text-center">Loading...</div>;
   }
@@ -601,6 +679,34 @@ function PracticeGame({
                   Next
                 </Button>
               </div>
+
+              {explanation && (
+                <div className="mt-4 p-3 bg-muted/50 rounded-lg text-left">
+                  <p className="text-xs sm:text-sm font-medium mb-2">
+                    Analysis:
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {explanation.reason}
+                  </p>
+                  {explanation.swingsAfterMarked.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {explanation.swingsAfterMarked.slice(0, 3).map((s, idx) => (
+                        <Badge 
+                          key={idx} 
+                          variant="outline"
+                          className={`text-xs ${
+                            s.label === "HH" || s.label === "HL" 
+                              ? "text-green-500 border-green-500" 
+                              : "text-red-500 border-red-500"
+                          }`}
+                        >
+                          {s.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
