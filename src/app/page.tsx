@@ -329,37 +329,9 @@ function PracticeGame({
               markIndex={predictionIndex}
             />
           </div>
-          
-          {step === "result" && (
-            <div className={`mt-4 text-center p-4 rounded-xl border-2 ${
-              prediction === actualDirection 
-                ? "bg-green-500/10 border-green-500/30" 
-                : "bg-red-500/10 border-red-500/30"
-            }`}>
-              <div className="flex items-center justify-center gap-3 mb-2">
-                {prediction === actualDirection ? (
-                  <CheckCircle className="w-6 h-6 text-green-500" />
-                ) : (
-                  <XCircle className="w-6 h-6 text-red-500" />
-                )}
-                <span className="text-xl font-bold">
-                  {prediction === actualDirection ? "Correct!" : "Wrong!"}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {markedCandle?.close.toFixed(5)} → {lastCandle?.close.toFixed(5)} = <span className="font-mono font-semibold text-foreground">{priceChange} pips</span>
-              </p>
-              <div className="mt-2">
-                <Badge variant={actualDirection === "buy" ? "default" : "destructive"} className="gap-1">
-                  {actualDirection === "buy" ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                  {actualDirection?.toUpperCase()}
-                </Badge>
-              </div>
-            </div>
-          )}
         </div>
         
-        <div className="w-56 space-y-3">
+        <div className="w-72 space-y-3">
           {step === "predict" && actualDirection && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground text-center">
@@ -383,22 +355,48 @@ function PracticeGame({
           )}
           
           {step === "result" && (
-            <div className="space-y-3">
-              <Button 
-                className="w-full" 
-                onClick={handleSkip}
-                variant="outline"
-                disabled={revealCount >= hideCount}
-              >
-                Skip
-              </Button>
-              <Button 
-                className="w-full gap-2"
-                onClick={handleNext}
-              >
-                <ChevronRight className="w-5 h-5" />
-                Next
-              </Button>
+            <div className={`text-center p-4 rounded-xl border-2 ${
+              prediction === actualDirection 
+                ? "bg-green-500/10 border-green-500/30" 
+                : "bg-red-500/10 border-red-500/30"
+            }`}>
+              <div className="flex items-center justify-center gap-3 mb-2">
+                {prediction === actualDirection ? (
+                  <CheckCircle className="w-6 h-6 text-green-500" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-red-500" />
+                )}
+                <span className="text-xl font-bold">
+                  {prediction === actualDirection ? "Correct!" : "Wrong!"}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {markedCandle?.close.toFixed(5)} → {lastCandle?.close.toFixed(5)} = <span className="font-mono font-semibold text-foreground">{priceChange} pips</span>
+              </p>
+              <div className="mt-2">
+                <Badge variant={actualDirection === "buy" ? "default" : "destructive"} className="gap-1">
+                  {actualDirection === "buy" ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  {actualDirection?.toUpperCase()}
+                </Badge>
+              </div>
+              
+              <div className="mt-4 space-y-2">
+                <Button 
+                  className="w-full" 
+                  onClick={handleSkip}
+                  variant="outline"
+                  disabled={revealCount >= hideCount}
+                >
+                  Skip
+                </Button>
+                <Button 
+                  className="w-full gap-2"
+                  onClick={handleNext}
+                >
+                  <ChevronRight className="w-5 h-5" />
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </div>
