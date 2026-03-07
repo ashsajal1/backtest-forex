@@ -50,9 +50,21 @@ interface StructureMarker {
   direction: "bullish" | "bearish";
 }
 
-function detectStructure(candles: Candle[]): StructureMarker[] {
+interface SwingPoint {
+  index: number;
+  type: "high" | "low";
+  price: number;
+}
+
+interface StructureData {
+  markers: StructureMarker[];
+  swings: SwingPoint[];
+}
+
+function detectStructure(candles: Candle[]): StructureData {
   const markers: StructureMarker[] = [];
-  if (candles.length < 5) return markers;
+  const swings: SwingPoint[] = [];
+  if (candles.length < 5) return { markers, swings };
 
   let swingHigh = -1;
   let swingLow = -1;
@@ -67,6 +79,7 @@ function detectStructure(candles: Candle[]): StructureMarker[] {
     const isSwingLow = curr.low < prev.low && curr.low < next.low && curr.low < candles[i - 2].low && curr.low < candles[i + 2].low;
 
     if (isSwingHigh) {
+      swings.push({ index: i, type: "high", price: curr.high });
       if (swingLow !== -1 && curr.high > candles[swingLow].high) {
         if (lastDirection === "down") {
           markers.push({ index: i, type: "CHoCH", direction: "bullish" });
@@ -79,6 +92,7 @@ function detectStructure(candles: Candle[]): StructureMarker[] {
     }
 
     if (isSwingLow) {
+      swings.push({ index: i, type: "low", price: curr.low });
       if (swingHigh !== -1 && curr.low < candles[swingHigh].low) {
         if (lastDirection === "up") {
           markers.push({ index: i, type: "CHoCH", direction: "bearish" });
@@ -91,7 +105,7 @@ function detectStructure(candles: Candle[]): StructureMarker[] {
     }
   }
 
-  return markers;
+  return { markers, swings };
 }
 
 function parseCandles(data: any): Candle[] {
@@ -117,13 +131,13 @@ function Chart({
   visibleCount,
   revealCount,
   markIndex,
-  structureMarkers,
+  structureData,
 }: {
   candles: Candle[];
   visibleCount: number;
   revealCount: number;
   markIndex: number;
-  structureMarkers?: StructureMarker[];
+  structureData?: StructureData;
   startTime?: string;
   endTime?: string;
 }) {
@@ -132,8 +146,10 @@ function Chart({
 
   if (displayCandles.length === 0) return null;
 
-  const markers = structureMarkers || [];
+  const markers = structureData?.markers || [];
+  const swings = structureData?.swings || [];
   const visibleMarkers = markers.filter(m => m.index < displayCount);
+  const visibleSwings = swings.filter(s => s.index < displayCount);
 
   const minLow = Math.min(...displayCandles.map((c) => c.low));
   const maxHigh = Math.max(...displayCandles.map((c) => c.high));
@@ -216,6 +232,7 @@ function Chart({
             )}
             {visibleMarkers.map((marker) => {
               if (marker.index !== i) return null;
+              const markerColor = marker.type === "BOS" ? "#3b82f6" : "#8b5cf6";
               return (
                 <g key={`marker-${i}`}>
                   <line
@@ -223,7 +240,7 @@ function Chart({
                     y1={0}
                     x2={i * candleWidth}
                     y2={height}
-                    stroke="#fbbf24"
+                    stroke={markerColor}
                     strokeWidth={3}
                     strokeDasharray="3,3"
                   />
@@ -231,7 +248,7 @@ function Chart({
                     x={i * candleWidth + candleWidth / 2}
                     y={15}
                     textAnchor="middle"
-                    fill="#fbbf24"
+                    fill={markerColor}
                     fontSize="10"
                     fontWeight="bold"
                   >
@@ -243,6 +260,31 @@ function Chart({
           </g>
         );
       })}
+
+      {visibleSwings.length > 1 && (
+        <g>
+          {visibleSwings.slice(0, -1).map((swing, idx) => {
+            const nextSwing = visibleSwings[idx + 1];
+            if (!nextSwing) return null;
+            const x1 = swing.index * candleWidth + candleWidth / 2;
+            const x2 = nextSwing.index * candleWidth + candleWidth / 2;
+            const y1 = scaleY(swing.price);
+            const y2 = scaleY(nextSwing.price);
+            return (
+              <line
+                key={`trendline-${idx}`}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="#94a3b8"
+                strokeWidth={1.5}
+                strokeOpacity={0.7}
+              />
+            );
+          })}
+        </g>
+      )}
 
       {revealCount === 0 && (
         <line
@@ -372,8 +414,8 @@ function PracticeGame({
     return allCandles.slice(startIndex, startIndex + totalCandles + hideCount);
   }, [allCandles, startIndex, totalCandles, hideCount]);
 
-  const structureMarkers = useMemo(() => {
-    if (visibleCandles.length === 0) return [];
+  const structureData = useMemo(() => {
+    if (visibleCandles.length === 0) return { markers: [], swings: [] };
     return detectStructure(visibleCandles);
   }, [visibleCandles]);
 
@@ -503,7 +545,7 @@ function PracticeGame({
               visibleCount={predictionIndex + 1}
               revealCount={revealCount}
               markIndex={predictionIndex}
-              structureMarkers={structureMarkers}
+              structureData={structureData}
             />
           </div>
         </div>
