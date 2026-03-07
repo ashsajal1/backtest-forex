@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HelpCircle, TrendingUp } from "lucide-react";
+import { HelpCircle, TrendingUp, Wallet } from "lucide-react";
+import Link from "next/link";
 import eurUsdData from "@/db/EURUSD.json";
 import xauUsdData from "@/db/XAUUSD.json";
 import { parseCandles, Candle } from "@/components/practice/structure";
@@ -145,6 +146,14 @@ export default function PracticePage() {
                   <SelectItem value="XAU/USD">XAU/USD</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Link
+                href="/trade"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-sm transition-colors"
+              >
+                <Wallet className="w-4 h-4" />
+                Trade
+              </Link>
             </div>
           </CardHeader>
           <CardContent>
