@@ -345,20 +345,13 @@ export default function Chart({
                     strokeWidth={1}
                     strokeDasharray="4,4"
                   />
-                  <rect
-                    x={x - 47}
-                    y={y - 8}
-                    width={45}
-                    height={16}
-                    fill={fibColors[idx]}
-                    rx={2}
-                  />
                   <text
-                    x={x - 45}
+                    x={x - fibWidth - 5}
                     y={y + 3}
-                    fill="white"
+                    fill={fibColors[idx]}
                     fontSize={9}
                     fontWeight="bold"
+                    textAnchor="end"
                   >
                     {(level.level * 100).toFixed(1)}%
                   </text>
