@@ -10,51 +10,51 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "SaaSFlow - Workflow Automation Platform for Teams",
-    template: "%s | SaaSFlow",
+    default: "Forex Practice - Smart Money Concepts Trading",
+    template: "%s | Forex Practice",
   },
   description:
-    "SaaSFlow helps teams automate workflows, collaborate seamlessly, and scale their business. Join 10,000+ teams saving 20+ hours per week with intelligent automation.",
+    "Practice forex trading with Smart Money Concepts. Learn to predict price direction using EUR/USD and XAU/USD with Fair Value Gap analysis.",
   keywords: [
-    "workflow automation",
-    "team collaboration",
-    "productivity tools",
-    "SaaS platform",
-    "business automation",
-    "project management",
-    "task automation",
+    "forex trading",
+    "trading practice",
+    "smart money concepts",
+    "fair value gap",
+    "price action trading",
+    "EUR/USD",
+    "XAU/USD",
+    "gold trading",
   ],
-  authors: [{ name: "SaaSFlow" }],
-  creator: "SaaSFlow",
-  publisher: "SaaSFlow",
-  metadataBase: new URL("https://saasflow.com"),
+  authors: [{ name: "Forex Practice" }],
+  creator: "Forex Practice",
+  publisher: "Forex Practice",
+  metadataBase: new URL("https://forex-practice.com"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://saasflow.com",
-    siteName: "SaaSFlow",
-    title: "SaaSFlow - Workflow Automation Platform for Teams",
+    url: "https://forex-practice.com",
+    siteName: "Forex Practice",
+    title: "Forex Practice - Smart Money Concepts Trading",
     description:
-      "Automate workflows, collaborate seamlessly, and scale your business. Join 10,000+ teams already saving time with SaaSFlow.",
+      "Practice forex trading with Smart Money Concepts. Learn to predict price direction using EUR/USD and XAU/USD with Fair Value Gap analysis.",
     images: [
       {
         url: "/pwa-512x512.png",
         width: 1200,
         height: 630,
-        alt: "SaaSFlow - Workflow Automation Platform",
+        alt: "Forex Practice - Smart Money Concepts Trading",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SaaSFlow - Workflow Automation Platform",
+    title: "Forex Practice - Smart Money Concepts Trading",
     description:
-      "Automate workflows, collaborate seamlessly, and scale your business. Join 10,000+ teams already saving time with SaaSFlow.",
+      "Practice forex trading with Smart Money Concepts. Learn to predict price direction using EUR/USD and XAU/USD with Fair Value Gap analysis.",
     images: ["/pwa-512x512.png"],
-    creator: "@saasflow",
   },
   robots: {
     index: true,
