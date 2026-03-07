@@ -44,6 +44,56 @@ interface Candle {
   datetime: string;
 }
 
+interface StructureMarker {
+  index: number;
+  type: "BOS" | "CHoCH";
+  direction: "bullish" | "bearish";
+}
+
+function detectStructure(candles: Candle[]): StructureMarker[] {
+  const markers: StructureMarker[] = [];
+  if (candles.length < 5) return markers;
+
+  let swingHigh = -1;
+  let swingLow = -1;
+  let lastDirection: "up" | "down" | null = null;
+
+  for (let i = 2; i < candles.length - 2; i++) {
+    const prev = candles[i - 1];
+    const curr = candles[i];
+    const next = candles[i + 1];
+
+    const isSwingHigh = curr.high > prev.high && curr.high > next.high && curr.high > candles[i - 2].high && curr.high > candles[i + 2].high;
+    const isSwingLow = curr.low < prev.low && curr.low < next.low && curr.low < candles[i - 2].low && curr.low < candles[i + 2].low;
+
+    if (isSwingHigh) {
+      if (swingLow !== -1 && curr.high > candles[swingLow].high) {
+        if (lastDirection === "down") {
+          markers.push({ index: i, type: "CHoCH", direction: "bullish" });
+        } else {
+          markers.push({ index: i, type: "BOS", direction: "bullish" });
+        }
+        lastDirection = "up";
+      }
+      swingHigh = i;
+    }
+
+    if (isSwingLow) {
+      if (swingHigh !== -1 && curr.low < candles[swingHigh].low) {
+        if (lastDirection === "up") {
+          markers.push({ index: i, type: "CHoCH", direction: "bearish" });
+        } else {
+          markers.push({ index: i, type: "BOS", direction: "bearish" });
+        }
+        lastDirection = "down";
+      }
+      swingLow = i;
+    }
+  }
+
+  return markers;
+}
+
 function parseCandles(data: any): Candle[] {
   const values = Array.isArray(data) ? data : data.values;
   const filtered = values.filter((item: any) => {
@@ -67,11 +117,13 @@ function Chart({
   visibleCount,
   revealCount,
   markIndex,
+  structureMarkers,
 }: {
   candles: Candle[];
   visibleCount: number;
   revealCount: number;
   markIndex: number;
+  structureMarkers?: StructureMarker[];
   startTime?: string;
   endTime?: string;
 }) {
@@ -79,6 +131,9 @@ function Chart({
   const displayCandles = candles.slice(0, displayCount);
 
   if (displayCandles.length === 0) return null;
+
+  const markers = structureMarkers || [];
+  const visibleMarkers = markers.filter(m => m.index < displayCount);
 
   const minLow = Math.min(...displayCandles.map((c) => c.low));
   const maxHigh = Math.max(...displayCandles.map((c) => c.high));
@@ -159,6 +214,32 @@ function Chart({
                 strokeWidth={2}
               />
             )}
+            {visibleMarkers.map((marker) => {
+              if (marker.index !== i) return null;
+              return (
+                <g key={`marker-${i}`}>
+                  <line
+                    x1={i * candleWidth}
+                    y1={0}
+                    x2={i * candleWidth}
+                    y2={height}
+                    stroke="#fbbf24"
+                    strokeWidth={3}
+                    strokeDasharray="3,3"
+                  />
+                  <text
+                    x={i * candleWidth + candleWidth / 2}
+                    y={15}
+                    textAnchor="middle"
+                    fill="#fbbf24"
+                    fontSize="10"
+                    fontWeight="bold"
+                  >
+                    {marker.type}
+                  </text>
+                </g>
+              );
+            })}
           </g>
         );
       })}
@@ -291,6 +372,11 @@ function PracticeGame({
     return allCandles.slice(startIndex, startIndex + totalCandles + hideCount);
   }, [allCandles, startIndex, totalCandles, hideCount]);
 
+  const structureMarkers = useMemo(() => {
+    if (visibleCandles.length === 0) return [];
+    return detectStructure(visibleCandles);
+  }, [visibleCandles]);
+
   const markedCandle = visibleCandles[predictionIndex];
   const lastCandle = visibleCandles[totalCandles - 1];
 
@@ -417,6 +503,7 @@ function PracticeGame({
               visibleCount={predictionIndex + 1}
               revealCount={revealCount}
               markIndex={predictionIndex}
+              structureMarkers={structureMarkers}
             />
           </div>
         </div>
