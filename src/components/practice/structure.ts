@@ -7,12 +7,6 @@ export interface Candle {
   datetime: string;
 }
 
-export interface StructureMarker {
-  index: number;
-  type: "BOS" | "CHoCH";
-  direction: "bullish" | "bearish";
-}
-
 export interface SwingPoint {
   index: number;
   type: "high" | "low";
@@ -21,18 +15,15 @@ export interface SwingPoint {
 }
 
 export interface StructureData {
-  markers: StructureMarker[];
   swings: SwingPoint[];
 }
 
 export function detectStructure(candles: Candle[]): StructureData {
-  const markers: StructureMarker[] = [];
   const swings: SwingPoint[] = [];
-  if (candles.length < 5) return { markers, swings };
+  if (candles.length < 5) return { swings };
 
   let swingHigh = -1;
   let swingLow = -1;
-  let lastDirection: "up" | "down" | null = null;
 
   for (let i = 2; i < candles.length - 2; i++) {
     const prev = candles[i - 1];
@@ -58,15 +49,6 @@ export function detectStructure(candles: Candle[]): StructureData {
         label = "LH";
       }
       swings.push({ index: i, type: "high", price: curr.high, label });
-
-      if (swingLow !== -1 && curr.high > candles[swingLow].high) {
-        if (lastDirection === "down") {
-          markers.push({ index: i, type: "CHoCH", direction: "bullish" });
-        } else {
-          markers.push({ index: i, type: "BOS", direction: "bullish" });
-        }
-        lastDirection = "up";
-      }
       swingHigh = i;
     }
 
@@ -78,20 +60,11 @@ export function detectStructure(candles: Candle[]): StructureData {
         label = "LL";
       }
       swings.push({ index: i, type: "low", price: curr.low, label });
-
-      if (swingHigh !== -1 && curr.low < candles[swingHigh].low) {
-        if (lastDirection === "up") {
-          markers.push({ index: i, type: "CHoCH", direction: "bearish" });
-        } else {
-          markers.push({ index: i, type: "BOS", direction: "bearish" });
-        }
-        lastDirection = "down";
-      }
       swingLow = i;
     }
   }
 
-  return { markers, swings };
+  return { swings };
 }
 
 export function parseCandles(data: any): Candle[] {

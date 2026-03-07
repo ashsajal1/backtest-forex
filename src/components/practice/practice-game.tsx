@@ -69,7 +69,7 @@ export default function PracticeGame({
   }, [allCandles, startIndex, totalCandles, hideCount]);
 
   const structureData = useMemo(() => {
-    if (visibleCandles.length === 0) return { markers: [], swings: [] };
+    if (visibleCandles.length === 0) return { swings: [] };
     return detectStructure(visibleCandles);
   }, [visibleCandles]);
 

@@ -22,9 +22,7 @@ export default function Chart({
 
   if (displayCandles.length === 0) return null;
 
-  const markers = structureData?.markers || [];
   const swings = structureData?.swings || [];
-  const visibleMarkers = markers.filter((m) => m.index < displayCount);
   const visibleSwings = swings.filter((s) => s.index < displayCount);
 
   const minLow = Math.min(...displayCandles.map((c) => c.low));
@@ -133,14 +131,6 @@ export default function Chart({
             const midX = (x1 + x2) / 2;
             const midY = (y1 + y2) / 2;
 
-            const marker = visibleMarkers.find(
-              (m) =>
-                (m.index === swing.index || m.index === nextSwing.index) &&
-                ((isBullishLine && m.direction === "bullish") ||
-                  (isBearishLine && m.direction === "bearish"))
-            );
-            const label = marker?.type || "";
-
             return (
               <g key={`trendline-${idx}`}>
                 <line
@@ -151,28 +141,8 @@ export default function Chart({
                   stroke={lineColor}
                   strokeWidth={2}
                 />
-                {label && (
-                  <>
-                    <rect
-                      x={midX - 20}
-                      y={midY - 8}
-                      width={40}
-                      height={16}
-                      rx={4}
-                      fill={lineColor}
-                    />
-                    <text
-                      x={midX}
-                      y={midY + 4}
-                      textAnchor="middle"
-                      fill="white"
-                      fontSize="9"
-                      fontWeight="bold"
-                    >
-                      {label}
-                    </text>
-                  </>
-                )}
+                <circle cx={x1} cy={y1} r={4} fill={lineColor} />
+                <circle cx={x2} cy={y2} r={4} fill={lineColor} />
               </g>
             );
           })}
