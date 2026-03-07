@@ -59,13 +59,13 @@ function Chart({
   const padding = range * 0.1;
   
   const width = 1000;
-  const height = 300;
+  const height = 250;
   const candleWidth = width / displayCandles.length;
   
   const scaleY = (value: number) => height - ((value - minLow + padding) / (range + padding * 2)) * height;
   
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[300px]">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[200px] sm:h-[250px]">
       {[0, 0.25, 0.5, 0.75, 1].map((pos) => (
         <line
           key={pos}
@@ -152,16 +152,16 @@ function Chart({
         />
       )}
       
-      <text x="5" y="15" fill="#9ca3af" fontSize="10">{displayCandles[0]?.datetime || "-"}</text>
-      <text x={width - 100} y="15" fill="#9ca3af" fontSize="10">{displayCandles[displayCandles.length - 1]?.datetime || "-"}</text>
+      <text x="5" y="15" fill="#9ca3af" fontSize="8" className="text-[8px] sm:text-[10px]">{displayCandles[0]?.datetime || "-"}</text>
+      <text x={width - 80} y="15" fill="#9ca3af" fontSize="8" className="text-[8px] sm:text-[10px]">{displayCandles[displayCandles.length - 1]?.datetime || "-"}</text>
     </svg>
   );
 }
 
 function ScoreCard({ label, score, accuracy }: { label: string; score: { correct: number; total: number }; accuracy: number }) {
   return (
-    <Card className="px-4 py-2 min-w-[110px]">
-      <div className="flex items-center justify-between gap-2">
+    <Card className="px-2 sm:px-4 py-2 min-w-[90px] sm:min-w-[110px]">
+      <div className="flex items-center justify-between gap-1 sm:gap-2">
         <Badge variant="secondary" className="font-mono text-xs">{label}</Badge>
         <div className="text-right">
           <div className="font-bold text-sm">{score.correct}/{score.total}</div>
@@ -278,7 +278,7 @@ function PracticeGame({
   
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/30 rounded-lg p-3">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-yellow-500/10 rounded-lg">
             <Target className="w-5 h-5 text-yellow-500" />
@@ -290,13 +290,13 @@ function PracticeGame({
                   Marked: <span className="text-yellow-500">{markedCandle.close.toFixed(5)}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Candle #{predictionIndex + 1} ({markedCandle.datetime})
+                  #{predictionIndex + 1} ({markedCandle.datetime})
                 </div>
               </>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 sm:ml-auto">
           {lastCandle && step === "result" && (
             <>
               <div className="text-right">
@@ -304,7 +304,7 @@ function PracticeGame({
                   Last: <span className={actualDirection === "buy" ? "text-green-500" : "text-red-500"}>{lastCandle.close.toFixed(5)}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Candle #{totalCandles} ({lastCandle.datetime})
+                  #{totalCandles} ({lastCandle.datetime})
                 </div>
               </div>
               <div className={`p-2 rounded-lg ${actualDirection === "buy" ? "bg-green-500/10" : "bg-red-500/10"}`}>
@@ -319,9 +319,9 @@ function PracticeGame({
         </div>
       </div>
       
-      <div className="flex gap-4">
+      <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1">
-          <div className="bg-muted/20 rounded-lg p-4">
+          <div className="bg-muted/20 rounded-lg p-2 sm:p-4">
             <Chart 
               candles={visibleCandles}
               visibleCount={predictionIndex + 1}
@@ -331,7 +331,7 @@ function PracticeGame({
           </div>
         </div>
         
-        <div className="w-72 space-y-3">
+        <div className="w-full lg:w-72 space-y-3">
           {step === "predict" && actualDirection && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground text-center">
@@ -494,7 +494,7 @@ export default function PracticePage() {
         <Card className="border-primary/10">
           <Tabs defaultValue="50" className="w-full">
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <TrendingUp className="w-5 h-5 text-primary" />
@@ -514,7 +514,7 @@ export default function PracticePage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center gap-4 mb-6">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-6">
                 <ScoreCard label="50" score={score50} accuracy={accuracy50} />
                 <ScoreCard label="100" score={score100} accuracy={accuracy100} />
                 <ScoreCard label="200" score={score200} accuracy={accuracy200} />
@@ -572,7 +572,7 @@ export default function PracticePage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">1</div>
                 <div>
