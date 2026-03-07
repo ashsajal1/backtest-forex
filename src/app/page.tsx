@@ -11,6 +11,13 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ArrowUp,
   ArrowDown,
   ChevronRight,
@@ -602,53 +609,52 @@ export default function PracticePage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-6">
       <div className="w-full space-y-8">
         <Card className="border-primary/10">
-          <Tabs defaultValue="50" className="w-full">
-            <CardHeader className="pb-2">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle>{currency} Practice</CardTitle>
-                    <CardDescription>Predict price direction</CardDescription>
-                  </div>
+          <CardHeader className="pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <TabsList>
-                    <TabsTrigger value="EUR/USD" onClick={() => setCurrency("EUR/USD")}>
-                      EUR/USD
-                    </TabsTrigger>
-                    <TabsTrigger value="XAU/USD" onClick={() => setCurrency("XAU/USD")}>
-                      XAU/USD
-                    </TabsTrigger>
-                  </TabsList>
+                <div>
+                  <CardTitle>{currency} Practice</CardTitle>
+                  <CardDescription>Predict price direction</CardDescription>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
-                  <ScoreCard label="50" score={score50} accuracy={accuracy50} />
-                  <ScoreCard
-                    label="100"
-                    score={score100}
-                    accuracy={accuracy100}
-                  />
-                  <ScoreCard
-                    label="200"
-                    score={score200}
-                    accuracy={accuracy200}
-                  />
-                </div>
 
-                <TabsList>
-                  <TabsTrigger value="50">50</TabsTrigger>
-                  <TabsTrigger value="100">100</TabsTrigger>
-                  <TabsTrigger value="200">200</TabsTrigger>
-                </TabsList>
-              </div>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as "EUR/USD" | "XAU/USD")}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EUR/USD">EUR/USD</SelectItem>
+                  <SelectItem value="XAU/USD">XAU/USD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             </CardHeader>
             <CardContent>
+              <Tabs defaultValue="50" className="w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                  <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+                    <ScoreCard label="50" score={score50} accuracy={accuracy50} />
+                    <ScoreCard
+                      label="100"
+                      score={score100}
+                      accuracy={accuracy100}
+                    />
+                    <ScoreCard
+                      label="200"
+                      score={score200}
+                      accuracy={accuracy200}
+                    />
+                  </div>
+
+                  <TabsList>
+                    <TabsTrigger value="50">50</TabsTrigger>
+                    <TabsTrigger value="100">100</TabsTrigger>
+                    <TabsTrigger value="200">200</TabsTrigger>
+                  </TabsList>
+                </div>
               <TabsContent value="50" className="mt-0">
                 <PracticeGame
                   totalCandles={config["50"].total}
@@ -690,9 +696,9 @@ export default function PracticePage() {
                   gameKey={gameKey200}
                 />
               </TabsContent>
+            </Tabs>
             </CardContent>
-          </Tabs>
-        </Card>
+          </Card>
 
         <Card className="border-primary/20">
           <CardHeader>
