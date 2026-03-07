@@ -414,22 +414,22 @@ function PracticeGame({
 
         <div className="w-full lg:w-72 space-y-3">
           {step === "predict" && actualDirection && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground text-center">
+            <div className="space-y-2 sm:space-y-3">
+              <p className="text-xs sm:text-sm text-muted-foreground text-center">
                 Predict price direction
               </p>
               <Button
-                className="w-full gap-2 bg-green-600 hover:bg-green-700 h-12 text-base"
+                className="w-full gap-1 sm:gap-2 bg-green-600 hover:bg-green-700 h-10 sm:h-12 text-sm sm:text-base"
                 onClick={() => handlePredict("buy")}
               >
-                <ArrowUp className="w-5 h-5" />
+                <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5" />
                 LONG
               </Button>
               <Button
-                className="w-full gap-2 bg-red-600 hover:bg-red-700 h-12 text-base"
+                className="w-full gap-1 sm:gap-2 bg-red-600 hover:bg-red-700 h-10 sm:h-12 text-sm sm:text-base"
                 onClick={() => handlePredict("sell")}
               >
-                <ArrowDown className="w-5 h-5" />
+                <ArrowDown className="w-4 h-4 sm:w-5 sm:h-5" />
                 SHORT
               </Button>
             </div>
@@ -437,30 +437,30 @@ function PracticeGame({
 
           {step === "result" && (
             <div
-              className={`text-center p-4 rounded-xl border-2 ${
+              className={`text-center p-2 sm:p-4 rounded-xl border-2 ${
                 prediction === actualDirection
                   ? "bg-green-500/10 border-green-500/30"
                   : "bg-red-500/10 border-red-500/30"
               }`}
             >
-              <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="flex items-center justify-center gap-2 mb-1 sm:mb-2">
                 {prediction === actualDirection ? (
-                  <CheckCircle className="w-6 h-6 text-green-500" />
+                  <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 text-green-500" />
                 ) : (
-                  <XCircle className="w-6 h-6 text-red-500" />
+                  <XCircle className="w-4 h-4 sm:w-6 sm:h-6 text-red-500" />
                 )}
-                <span className="text-xl font-bold">
+                <span className="text-base sm:text-xl font-bold">
                   {prediction === actualDirection ? "Correct!" : "Wrong!"}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {markedCandle?.close.toFixed(5)} →{" "}
                 {lastCandle?.close.toFixed(5)} ={" "}
                 <span className="font-mono font-semibold text-foreground">
                   {priceChange} pips
                 </span>
               </p>
-              <div className="mt-2">
+              <div className="mt-1 sm:mt-2">
                 <Badge
                   variant={
                     actualDirection === "buy" ? "default" : "destructive"
@@ -468,25 +468,26 @@ function PracticeGame({
                   className="gap-1"
                 >
                   {actualDirection === "buy" ? (
-                    <TrendingUp className="w-4 h-4" />
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
                   ) : (
-                    <TrendingDown className="w-4 h-4" />
+                    <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4" />
                   )}
                   {actualDirection?.toUpperCase()}
                 </Badge>
               </div>
 
-              <div className="mt-4 space-y-2">
+              <div className="mt-2 sm:mt-4 flex gap-2">
                 <Button
-                  className="w-full"
+                  className="flex-1"
                   onClick={handleSkip}
                   variant="outline"
                   disabled={revealCount >= hideCount}
                 >
                   Skip
                 </Button>
-                <Button className="w-full gap-2" onClick={handleNext}>
-                  <ChevronRight className="w-5 h-5" />
+                <Button className="flex-1 gap-1 sm:gap-2" onClick={handleNext}>
+                  Next
+                  <ChevronRight className="w-3 h-3 sm:w-5 sm:h-5" />
                   Next
                 </Button>
               </div>
