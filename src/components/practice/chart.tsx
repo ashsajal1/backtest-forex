@@ -22,9 +22,6 @@ export default function Chart({
 
   if (displayCandles.length === 0) return null;
 
-  const swings = structureData?.swings || [];
-  const visibleSwings = swings.filter((s) => s.index < displayCount);
-
   const minLow = Math.min(...displayCandles.map((c) => c.low));
   const maxHigh = Math.max(...displayCandles.map((c) => c.high));
   const range = maxHigh - minLow || 1;
@@ -107,47 +104,6 @@ export default function Chart({
           </g>
         );
       })}
-
-      {visibleSwings.length > 1 && (
-        <g>
-          {visibleSwings.slice(0, -1).map((swing, idx) => {
-            const nextSwing = visibleSwings[idx + 1];
-            if (!nextSwing) return null;
-            const x1 = swing.index * candleWidth + candleWidth / 2;
-            const x2 = nextSwing.index * candleWidth + candleWidth / 2;
-            const y1 = scaleY(swing.price);
-            const y2 = scaleY(nextSwing.price);
-
-            const isBullishLine =
-              (swing.label === "HH" || swing.label === "HL") &&
-              (nextSwing.label === "HH" || nextSwing.label === "HL");
-            const isBearishLine =
-              (swing.label === "LH" || swing.label === "LL") &&
-              (nextSwing.label === "LH" || nextSwing.label === "LL");
-
-            if (!isBullishLine && !isBearishLine) return null;
-
-            const lineColor = isBullishLine ? "#22c55e" : "#ef4444";
-            const midX = (x1 + x2) / 2;
-            const midY = (y1 + y2) / 2;
-
-            return (
-              <g key={`trendline-${idx}`}>
-                <line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={lineColor}
-                  strokeWidth={2}
-                />
-                <circle cx={x1} cy={y1} r={4} fill={lineColor} />
-                <circle cx={x2} cy={y2} r={4} fill={lineColor} />
-              </g>
-            );
-          })}
-        </g>
-      )}
 
       {revealCount === 0 && (
         <line
