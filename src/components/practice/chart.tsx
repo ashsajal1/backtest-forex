@@ -21,12 +21,17 @@ interface ChartProps {
   revealCount: number;
   markIndex: number;
   structureData?: StructureData;
-  activeTool: DrawingTool;
-  drawings: Drawing[];
-  onAddDrawing: (drawing: Drawing) => void;
+  activeTool?: DrawingTool;
+  drawings?: Drawing[];
+  onAddDrawing?: (drawing: Drawing) => void;
   gameKey?: number;
   width?: number;
   height?: number;
+  entryPrice?: number | null;
+  tpPrice?: number | null;
+  slPrice?: number | null;
+  tradeDirection?: "buy" | "sell" | null;
+  onTpSlChange?: (tp: number | null, sl: number | null) => void;
 }
 
 export default function Chart({
@@ -35,18 +40,29 @@ export default function Chart({
   revealCount,
   markIndex,
   structureData,
-  activeTool,
-  drawings,
+  activeTool = "none",
+  drawings = [],
   onAddDrawing,
   gameKey,
   width = 1000,
   height = 250,
+  entryPrice,
+  tpPrice,
+  slPrice,
+  tradeDirection,
+  onTpSlChange,
 }: ChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStartPoint, setDrawStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
   const [trendlinePoints, setTrendlinePoints] = useState<Point[]>([]);
+  const [draggingTpSl, setDraggingTpSl] = useState<"tp" | "sl" | null>(null);
+
+  const entryCandleIndex = useMemo(() => {
+    if (!entryPrice) return markIndex;
+    return markIndex;
+  }, [entryPrice, markIndex]);
 
   useEffect(() => {
     if (activeTool !== "trendline") {
@@ -142,7 +158,7 @@ export default function Chart({
             type: "trendline",
             points: newPoints,
           };
-          onAddDrawing(trendline);
+          onAddDrawing?.(trendline);
           setTrendlinePoints([newPoints[newPoints.length - 1]]);
         }
         return;
@@ -182,7 +198,7 @@ export default function Chart({
           startPoint: drawStartPoint,
           endPoint,
         };
-        onAddDrawing(line);
+        onAddDrawing?.(line);
       } else if (activeTool === "longshort") {
         const candleAtStart = displayCandles[drawStartPoint.candleIndex || 0];
         const candleAtEnd = displayCandles[endPoint.candleIndex || 0];
@@ -204,7 +220,7 @@ export default function Chart({
           displayCandles
         );
 
-        onAddDrawing({
+        onAddDrawing?.({
           ...longshort,
           direction: calculated.direction,
           priceDiff: calculated.priceDiff,
@@ -224,7 +240,7 @@ export default function Chart({
           endPoint,
           levels,
         };
-        onAddDrawing(fibonacci);
+        onAddDrawing?.(fibonacci);
       }
 
       setIsDrawing(false);
@@ -233,6 +249,155 @@ export default function Chart({
     },
     [isDrawing, drawStartPoint, activeTool, getPointFromEvent, onAddDrawing, displayCandles]
   );
+
+  const handleTpSlMouseDown = useCallback((e: React.MouseEvent<SVGGElement>, type: "tp" | "sl") => {
+    e.stopPropagation();
+    setDraggingTpSl(type);
+  }, []);
+
+  const handleTpSlMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (!draggingTpSl || !onTpSlChange) return;
+      
+      const point = getPointFromEvent(e);
+      if (point.price === undefined) return;
+
+      if (draggingTpSl === "tp") {
+        onTpSlChange(point.price, slPrice ?? null);
+      } else {
+        onTpSlChange(tpPrice ?? null, point.price);
+      }
+    },
+    [draggingTpSl, onTpSlChange, getPointFromEvent, tpPrice, slPrice]
+  );
+
+  const handleTpSlMouseUp = useCallback(() => {
+    setDraggingTpSl(null);
+  }, []);
+
+  const renderTpSl = useMemo(() => {
+    if (!entryPrice || !tradeDirection || !onTpSlChange) return null;
+
+    const tpY = tpPrice ? scaleY(tpPrice) : null;
+    const slY = slPrice ? scaleY(slPrice) : null;
+    const entryY = scaleY(entryPrice);
+    const startX = getXFromCandleIndex(markIndex);
+    const endX = width;
+
+    const isBuy = tradeDirection === "buy";
+
+    return (
+      <g>
+        {tpY !== null && (
+          <g>
+            <line
+              x1={startX}
+              y1={tpY}
+              x2={endX}
+              y2={tpY}
+              stroke="#22c55e"
+              strokeWidth={2}
+              strokeDasharray="5,5"
+            />
+            <rect
+              x={startX}
+              y={tpY - 10}
+              width={60}
+              height={20}
+              fill="#22c55e"
+              rx={4}
+              className="cursor-move"
+              onMouseDown={(e) => handleTpSlMouseDown(e, "tp")}
+            />
+            <text
+              x={startX + 30}
+              y={tpY + 4}
+              textAnchor="middle"
+              fill="white"
+              fontSize={10}
+              fontWeight="bold"
+              pointerEvents="none"
+            >
+              TP
+            </text>
+            <text
+              x={endX - 5}
+              y={tpY + 3}
+              fill="#22c55e"
+              fontSize={10}
+              fontWeight="bold"
+              textAnchor="end"
+            >
+              {tpPrice?.toFixed(5)}
+            </text>
+          </g>
+        )}
+
+        {slY !== null && (
+          <g>
+            <line
+              x1={startX}
+              y1={slY}
+              x2={endX}
+              y2={slY}
+              stroke="#ef4444"
+              strokeWidth={2}
+              strokeDasharray="5,5"
+            />
+            <rect
+              x={startX}
+              y={slY - 10}
+              width={60}
+              height={20}
+              fill="#ef4444"
+              rx={4}
+              className="cursor-move"
+              onMouseDown={(e) => handleTpSlMouseDown(e, "sl")}
+            />
+            <text
+              x={startX + 30}
+              y={slY + 4}
+              textAnchor="middle"
+              fill="white"
+              fontSize={10}
+              fontWeight="bold"
+              pointerEvents="none"
+            >
+              SL
+            </text>
+            <text
+              x={endX - 5}
+              y={slY + 3}
+              fill="#ef4444"
+              fontSize={10}
+              fontWeight="bold"
+              textAnchor="end"
+            >
+              {slPrice?.toFixed(5)}
+            </text>
+          </g>
+        )}
+
+        <line
+          x1={startX}
+          y1={entryY}
+          x2={endX}
+          y2={entryY}
+          stroke="#fbbf24"
+          strokeWidth={2}
+        />
+        <text
+          x={startX + 5}
+          y={entryY - 5}
+          fill="#fbbf24"
+          fontSize={10}
+          fontWeight="bold"
+        >
+          ENTRY {entryPrice.toFixed(5)}
+        </text>
+      </g>
+    );
+  }, [entryPrice, tpPrice, slPrice, tradeDirection, onTpSlChange, markIndex, width, scaleY, getXFromCandleIndex, handleTpSlMouseDown]);
 
   const renderDrawings = useMemo(() => {
     return drawings.map((drawing) => {
@@ -525,20 +690,39 @@ export default function Chart({
 
   if (displayCandles.length === 0) return null;
 
+  const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (draggingTpSl) {
+      handleTpSlMouseMove(e);
+    } else {
+      handleMouseMove(e);
+    }
+  };
+
+  const handleSvgMouseUp = () => {
+    if (draggingTpSl) {
+      handleTpSlMouseUp();
+    } else {
+      // original mouseUp doesn't need event
+    }
+  };
+
   return (
     <svg
       ref={svgRef}
       viewBox={`0 0 ${width} ${height}`}
       className="w-full h-[200px] sm:h-[250px]"
-      style={{ cursor: cursorStyle }}
+      style={{ cursor: draggingTpSl ? "ns-resize" : cursorStyle }}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
+      onMouseMove={handleSvgMouseMove}
+      onMouseUp={handleSvgMouseUp}
       onMouseLeave={() => {
         if (isDrawing) {
           setIsDrawing(false);
           setDrawStartPoint(null);
           setCurrentPoint(null);
+        }
+        if (draggingTpSl) {
+          setDraggingTpSl(null);
         }
       }}
     >
@@ -605,6 +789,8 @@ export default function Chart({
       {renderDrawingPreview}
 
       {renderDrawings}
+
+      {renderTpSl}
 
       {revealCount === 0 && (
         <line
