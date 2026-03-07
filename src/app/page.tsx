@@ -230,33 +230,6 @@ function Chart({
                 strokeWidth={2}
               />
             )}
-            {visibleMarkers.map((marker) => {
-              if (marker.index !== i) return null;
-              const markerColor = marker.type === "BOS" ? "#3b82f6" : "#8b5cf6";
-              return (
-                <g key={`marker-${i}`}>
-                  <line
-                    x1={i * candleWidth}
-                    y1={0}
-                    x2={i * candleWidth}
-                    y2={height}
-                    stroke={markerColor}
-                    strokeWidth={3}
-                    strokeDasharray="3,3"
-                  />
-                  <text
-                    x={i * candleWidth + candleWidth / 2}
-                    y={15}
-                    textAnchor="middle"
-                    fill={markerColor}
-                    fontSize="10"
-                    fontWeight="bold"
-                  >
-                    {marker.type}
-                  </text>
-                </g>
-              );
-            })}
           </g>
         );
       })}
