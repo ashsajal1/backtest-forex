@@ -88,6 +88,8 @@ export default function PracticeGame({
         setActiveTool("trendline");
       } else if (key === "a") {
         setActiveTool("measurement");
+      } else if (key === "f") {
+        setActiveTool("fibonacci");
       } else if (key === "d") {
         setDrawings([]);
       }
