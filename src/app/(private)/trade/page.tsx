@@ -367,8 +367,37 @@ export default function TradePage() {
                   {entryPrice && !tradeResult && (
                     <div className="space-y-3">
                       <div className="p-3 bg-muted/50 rounded-lg">
-                        <div className="text-sm text-muted-foreground mb-2">Set TP & SL (drag on chart or enter manually)</div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          Drag TP/SL lines on chart or use quick buttons
+                        </div>
                         
+                        <div className="grid grid-cols-3 gap-1 mb-3">
+                          {[1, 2, 3].map((rr) => (
+                            <Button
+                              key={rr}
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => {
+                                if (!entryPrice || !tradeDirection) return;
+                                const isBuy = tradeDirection === "buy";
+                                const pipRisk = 20;
+                                const pipReward = pipRisk * rr;
+                                
+                                if (isBuy) {
+                                  setSlPrice(entryPrice - pipRisk * 0.0001);
+                                  setTpPrice(entryPrice + pipReward * 0.0001);
+                                } else {
+                                  setSlPrice(entryPrice + pipRisk * 0.0001);
+                                  setTpPrice(entryPrice - pipReward * 0.0001);
+                                }
+                              }}
+                            >
+                              1:{rr}
+                            </Button>
+                          ))}
+                        </div>
+
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-xs text-muted-foreground">Take Profit</label>
