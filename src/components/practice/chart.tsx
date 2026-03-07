@@ -44,6 +44,7 @@ export default function Chart({
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStartPoint, setDrawStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
+  const [trendlinePoints, setTrendlinePoints] = useState<Point[]>([]);
 
   const displayCount = visibleCount + revealCount;
   const displayCandles = candles.slice(0, displayCount);
@@ -102,11 +103,28 @@ export default function Chart({
       if (activeTool === "none") return;
 
       const point = getPointFromEvent(e);
+
+      if (activeTool === "trendline") {
+        const newPoints = [...trendlinePoints, point];
+        setTrendlinePoints(newPoints);
+        
+        if (newPoints.length >= 2) {
+          const trendline: Trendline = {
+            id: generateDrawingId(),
+            type: "trendline",
+            points: newPoints,
+          };
+          onAddDrawing(trendline);
+          setTrendlinePoints([]);
+        }
+        return;
+      }
+
       setDrawStartPoint(point);
       setIsDrawing(true);
       setCurrentPoint(point);
     },
-    [activeTool, getPointFromEvent]
+    [activeTool, getPointFromEvent, trendlinePoints, onAddDrawing]
   );
 
   const handleMouseMove = useCallback(
@@ -129,15 +147,7 @@ export default function Chart({
 
       const endPoint = getPointFromEvent(e);
 
-      if (activeTool === "trendline") {
-        const trendline: Trendline = {
-          id: generateDrawingId(),
-          type: "trendline",
-          startPoint: drawStartPoint,
-          endPoint,
-        };
-        onAddDrawing(trendline);
-      } else if (activeTool === "line") {
+      if (activeTool === "line") {
         const line: Line = {
           id: generateDrawingId(),
           type: "line",
@@ -199,15 +209,20 @@ export default function Chart({
   const renderDrawings = useMemo(() => {
     return drawings.map((drawing) => {
       if (drawing.type === "trendline") {
+        const points = drawing.points;
+        if (points.length < 2) return null;
+        
+        const pathD = points.map((p, i) => 
+          i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
+        ).join(" ");
+
         return (
-          <line
+          <path
             key={drawing.id}
-            x1={drawing.startPoint.x}
-            y1={drawing.startPoint.y}
-            x2={drawing.endPoint.x}
-            y2={drawing.endPoint.y}
+            d={pathD}
             stroke="#3b82f6"
             strokeWidth={2}
+            fill="none"
           />
         );
       }
@@ -346,21 +361,26 @@ export default function Chart({
   }, [drawings]);
 
   const renderDrawingPreview = useMemo(() => {
-    if (!isDrawing || !drawStartPoint || !currentPoint) return null;
-
     if (activeTool === "trendline") {
+      if (trendlinePoints.length === 0) return null;
+      
+      const allPoints = [...trendlinePoints];
+      const pathD = allPoints.map((p, i) => 
+        i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
+      ).join(" ");
+
       return (
-        <line
-          x1={drawStartPoint.x}
-          y1={drawStartPoint.y}
-          x2={currentPoint.x}
-          y2={currentPoint.y}
+        <path
+          d={pathD}
           stroke="#3b82f6"
           strokeWidth={2}
           strokeDasharray="5,5"
+          fill="none"
         />
       );
     }
+
+    if (!isDrawing || !drawStartPoint || !currentPoint) return null;
 
     if (activeTool === "line") {
       return (
@@ -429,7 +449,7 @@ export default function Chart({
     }
 
     return null;
-  }, [isDrawing, drawStartPoint, currentPoint, activeTool, invertY]);
+  }, [isDrawing, drawStartPoint, currentPoint, activeTool, invertY, trendlinePoints]);
 
   const cursorStyle = activeTool === "none" ? "default" : "crosshair";
 

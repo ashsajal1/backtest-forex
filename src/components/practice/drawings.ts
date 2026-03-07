@@ -10,8 +10,7 @@ export interface Point {
 export interface Trendline {
   id: string;
   type: "trendline";
-  startPoint: Point;
-  endPoint: Point;
+  points: Point[];
 }
 
 export interface Line {
