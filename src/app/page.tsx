@@ -24,6 +24,7 @@ import {
   XCircle,
 } from "lucide-react";
 import eurUsdData from "@/db/EURUSD.json";
+import xauUsdData from "@/db/XAUUSD.json";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
@@ -36,14 +37,15 @@ interface Candle {
   datetime: string;
 }
 
-function parseCandles(data: any[]): Candle[] {
-  const filtered = data.filter((item) => {
+function parseCandles(data: any): Candle[] {
+  const values = Array.isArray(data) ? data : data.values;
+  const filtered = values.filter((item: any) => {
     const date = new Date(item.datetime);
     const day = date.getDay();
     return day !== 0 && day !== 6;
   });
   const reversed = [...filtered].reverse();
-  return reversed.map((item, index) => ({
+  return reversed.map((item: any, index: number) => ({
     time: index,
     open: parseFloat(item.open),
     high: parseFloat(item.high),
@@ -499,6 +501,7 @@ function PracticeGame({
 }
 
 export default function PracticePage() {
+  const [currency, setCurrency] = useState<"EUR/USD" | "XAU/USD">("EUR/USD");
   const [allCandles, setAllCandles] = useState<Candle[]>([]);
   const [startIndex50, setStartIndex50] = useState(0);
   const [startIndex100, setStartIndex100] = useState(0);
@@ -518,7 +521,8 @@ export default function PracticePage() {
   };
 
   useEffect(() => {
-    const candles = parseCandles(eurUsdData.values as any[]);
+    const data = currency === "EUR/USD" ? eurUsdData : xauUsdData;
+    const candles = parseCandles(data);
     setAllCandles(candles);
 
     const maxStart50 = candles.length - 50 - 10 - 1;
@@ -529,8 +533,15 @@ export default function PracticePage() {
     setStartIndex100(Math.floor(Math.random() * Math.max(1, maxStart100)));
     setStartIndex200(Math.floor(Math.random() * Math.max(1, maxStart200)));
 
+    setScore50({ correct: 0, total: 0 });
+    setScore100({ correct: 0, total: 0 });
+    setScore200({ correct: 0, total: 0 });
+    setGameKey50(0);
+    setGameKey100(0);
+    setGameKey200(0);
+
     setMounted(true);
-  }, []);
+  }, [currency]);
 
   const accuracy50 =
     score50.total > 0 ? Math.round((score50.correct / score50.total) * 100) : 0;
@@ -599,12 +610,24 @@ export default function PracticePage() {
                     <TrendingUp className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <CardTitle>EUR/USD Practice</CardTitle>
+                    <CardTitle>{currency} Practice</CardTitle>
                     <CardDescription>Predict price direction</CardDescription>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mb-6">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <TabsList>
+                    <TabsTrigger value="EUR/USD" onClick={() => setCurrency("EUR/USD")}>
+                      EUR/USD
+                    </TabsTrigger>
+                    <TabsTrigger value="XAU/USD" onClick={() => setCurrency("XAU/USD")}>
+                      XAU/USD
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
                   <ScoreCard label="50" score={score50} accuracy={accuracy50} />
                   <ScoreCard
                     label="100"
