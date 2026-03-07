@@ -87,7 +87,9 @@ export default function PracticeGame({
       } else if (key === "t") {
         setActiveTool("trendline");
       } else if (key === "a") {
-        setActiveTool("measurement");
+        setActiveTool("line");
+      } else if (key === "s") {
+        setActiveTool("longshort");
       } else if (key === "f") {
         setActiveTool("fibonacci");
       } else if (key === "d") {

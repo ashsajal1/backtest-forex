@@ -12,6 +12,8 @@ import {
   Minus,
   TrendingUp,
   Trash2,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { DrawingTool } from "./drawings";
 
@@ -40,9 +42,19 @@ export default function DrawingToolbar({
       label: "Trendline",
     },
     {
-      tool: "measurement",
+      tool: "line",
       icon: <Minus className="w-4 h-4" />,
-      label: "Measure",
+      label: "Line",
+    },
+    {
+      tool: "longshort",
+      icon: (
+        <div className="flex gap-0.5">
+          <ArrowUp className="w-3 h-3" />
+          <ArrowDown className="w-3 h-3" />
+        </div>
+      ),
+      label: "Long/Short",
     },
     {
       tool: "fibonacci",

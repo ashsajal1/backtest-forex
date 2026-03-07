@@ -1,4 +1,4 @@
-export type DrawingTool = "trendline" | "measurement" | "fibonacci" | "none";
+export type DrawingTool = "trendline" | "line" | "longshort" | "fibonacci" | "none";
 
 export interface Point {
   x: number;
@@ -14,11 +14,19 @@ export interface Trendline {
   endPoint: Point;
 }
 
-export interface Measurement {
+export interface Line {
   id: string;
-  type: "measurement";
+  type: "line";
   startPoint: Point;
   endPoint: Point;
+}
+
+export interface LongShort {
+  id: string;
+  type: "longshort";
+  startPoint: Point;
+  endPoint: Point;
+  direction: "long" | "short";
   priceDiff: number;
   pipDiff: number;
   candleCount: number;
@@ -37,7 +45,7 @@ export interface Fibonacci {
   levels: FibonacciLevel[];
 }
 
-export type Drawing = Trendline | Measurement | Fibonacci;
+export type Drawing = Trendline | Line | LongShort | Fibonacci;
 
 export const FIBONACCI_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
 
@@ -49,22 +57,27 @@ export function calculateFibonacciLevels(startPrice: number, endPrice: number): 
   }));
 }
 
-export function calculateMeasurement(
+export function calculateLongShort(
   startPoint: Point,
   endPoint: Point,
   candles: { close: number }[]
-): Measurement {
+): LongShort {
   const priceDiff = Math.abs((endPoint.price || 0) - (startPoint.price || 0));
   const pipDiff = priceDiff * 10000;
   const candleCount = Math.abs(
     (endPoint.candleIndex || 0) - (startPoint.candleIndex || 0)
   );
 
+  const startPrice = startPoint.price || 0;
+  const endPrice = endPoint.price || 0;
+  const direction: "long" | "short" = endPrice > startPrice ? "long" : "short";
+
   return {
     id: crypto.randomUUID(),
-    type: "measurement",
+    type: "longshort",
     startPoint,
     endPoint,
+    direction,
     priceDiff,
     pipDiff,
     candleCount,

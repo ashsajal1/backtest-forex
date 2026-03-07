@@ -6,10 +6,11 @@ import {
   Drawing,
   DrawingTool,
   Trendline,
-  Measurement,
+  Line,
+  LongShort,
   Fibonacci,
   calculateFibonacciLevels,
-  calculateMeasurement,
+  calculateLongShort,
   generateDrawingId,
   Point,
 } from "./drawings";
@@ -136,28 +137,38 @@ export default function Chart({
           endPoint,
         };
         onAddDrawing(trendline);
-      } else if (activeTool === "measurement") {
+      } else if (activeTool === "line") {
+        const line: Line = {
+          id: generateDrawingId(),
+          type: "line",
+          startPoint: drawStartPoint,
+          endPoint,
+        };
+        onAddDrawing(line);
+      } else if (activeTool === "longshort") {
         const candleAtStart = displayCandles[drawStartPoint.candleIndex || 0];
         const candleAtEnd = displayCandles[endPoint.candleIndex || 0];
 
-        const measurement: Measurement = {
+        const longshort: LongShort = {
           id: generateDrawingId(),
-          type: "measurement",
+          type: "longshort",
           startPoint: { ...drawStartPoint, price: candleAtStart?.close, candleIndex: drawStartPoint.candleIndex },
           endPoint: { ...endPoint, price: candleAtEnd?.close, candleIndex: endPoint.candleIndex },
+          direction: "long",
           priceDiff: 0,
           pipDiff: 0,
           candleCount: 0,
         };
 
-        const calculated = calculateMeasurement(
+        const calculated = calculateLongShort(
           { ...drawStartPoint, price: candleAtStart?.close, candleIndex: drawStartPoint.candleIndex },
           { ...endPoint, price: candleAtEnd?.close, candleIndex: endPoint.candleIndex },
           displayCandles
         );
 
         onAddDrawing({
-          ...measurement,
+          ...longshort,
+          direction: calculated.direction,
           priceDiff: calculated.priceDiff,
           pipDiff: calculated.pipDiff,
           candleCount: calculated.candleCount,
@@ -201,9 +212,26 @@ export default function Chart({
         );
       }
 
-      if (drawing.type === "measurement") {
+      if (drawing.type === "line") {
+        return (
+          <line
+            key={drawing.id}
+            x1={drawing.startPoint.x}
+            y1={drawing.startPoint.y}
+            x2={drawing.endPoint.x}
+            y2={drawing.endPoint.y}
+            stroke="#f59e0b"
+            strokeWidth={2}
+            strokeDasharray="5,5"
+          />
+        );
+      }
+
+      if (drawing.type === "longshort") {
         const midX = (drawing.startPoint.x + drawing.endPoint.x) / 2;
         const midY = (drawing.startPoint.y + drawing.endPoint.y) / 2;
+        const isLong = drawing.direction === "long";
+        const color = isLong ? "#22c55e" : "#ef4444";
 
         return (
           <g key={drawing.id}>
@@ -212,27 +240,27 @@ export default function Chart({
               y1={drawing.startPoint.y}
               x2={drawing.endPoint.x}
               y2={drawing.endPoint.y}
-              stroke="#8b5cf6"
+              stroke={color}
               strokeWidth={2}
             />
             <circle
               cx={drawing.startPoint.x}
               cy={drawing.startPoint.y}
               r={4}
-              fill="#8b5cf6"
+              fill={color}
             />
             <circle
               cx={drawing.endPoint.x}
               cy={drawing.endPoint.y}
               r={4}
-              fill="#8b5cf6"
+              fill={color}
             />
             <rect
-              x={midX - 40}
+              x={midX - 45}
               y={midY - 12}
-              width={80}
+              width={90}
               height={24}
-              fill="#8b5cf6"
+              fill={color}
               rx={4}
             />
             <text
@@ -243,7 +271,7 @@ export default function Chart({
               fontSize={10}
               fontWeight="bold"
             >
-              {drawing.pipDiff.toFixed(1)} pips
+              {isLong ? "LONG" : "SHORT"} {drawing.pipDiff.toFixed(1)} pips
             </text>
           </g>
         );
@@ -334,14 +362,31 @@ export default function Chart({
       );
     }
 
-    if (activeTool === "measurement") {
+    if (activeTool === "line") {
       return (
         <line
           x1={drawStartPoint.x}
           y1={drawStartPoint.y}
           x2={currentPoint.x}
           y2={currentPoint.y}
-          stroke="#8b5cf6"
+          stroke="#f59e0b"
+          strokeWidth={2}
+          strokeDasharray="5,5"
+        />
+      );
+    }
+
+    if (activeTool === "longshort") {
+      const isLong = currentPoint.y < drawStartPoint.y;
+      const color = isLong ? "#22c55e" : "#ef4444";
+
+      return (
+        <line
+          x1={drawStartPoint.x}
+          y1={drawStartPoint.y}
+          x2={currentPoint.x}
+          y2={currentPoint.y}
+          stroke={color}
           strokeWidth={2}
           strokeDasharray="5,5"
         />
