@@ -486,7 +486,6 @@ function PracticeGame({
                   Skip
                 </Button>
                 <Button className="flex-1 gap-1 sm:gap-2" onClick={handleNext}>
-                  Next
                   <ChevronRight className="w-3 h-3 sm:w-5 sm:h-5" />
                   Next
                 </Button>
