@@ -108,14 +108,14 @@ export default function Chart({
         const newPoints = [...trendlinePoints, point];
         setTrendlinePoints(newPoints);
         
-        if (newPoints.length >= 2) {
+        if (newPoints.length >= 3) {
           const trendline: Trendline = {
             id: generateDrawingId(),
             type: "trendline",
             points: newPoints,
           };
           onAddDrawing(trendline);
-          setTrendlinePoints([]);
+          setTrendlinePoints([newPoints[newPoints.length - 1]]);
         }
         return;
       }
