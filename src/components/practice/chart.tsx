@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, useMemo } from "react";
+import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { Candle, StructureData } from "./structure";
 import {
   Drawing,
@@ -24,6 +24,7 @@ interface ChartProps {
   activeTool: DrawingTool;
   drawings: Drawing[];
   onAddDrawing: (drawing: Drawing) => void;
+  gameKey?: number;
   width?: number;
   height?: number;
 }
@@ -37,6 +38,7 @@ export default function Chart({
   activeTool,
   drawings,
   onAddDrawing,
+  gameKey,
   width = 1000,
   height = 250,
 }: ChartProps) {
@@ -45,6 +47,16 @@ export default function Chart({
   const [drawStartPoint, setDrawStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
   const [trendlinePoints, setTrendlinePoints] = useState<Point[]>([]);
+
+  useEffect(() => {
+    if (activeTool !== "trendline") {
+      setTrendlinePoints([]);
+    }
+  }, [activeTool]);
+
+  useEffect(() => {
+    setTrendlinePoints([]);
+  }, [gameKey]);
 
   const displayCount = visibleCount + revealCount;
   const displayCandles = candles.slice(0, displayCount);

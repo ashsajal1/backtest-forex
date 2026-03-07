@@ -333,6 +333,7 @@ export default function PracticeGame({
               activeTool={activeTool}
               drawings={drawings}
               onAddDrawing={handleAddDrawing}
+              gameKey={gameKey}
             />
           </div>
         </div>
