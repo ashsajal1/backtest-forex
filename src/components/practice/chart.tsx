@@ -63,6 +63,22 @@ export default function Chart({
     [minLow, range, padding, height]
   );
 
+  const getXFromCandleIndex = useCallback(
+    (index: number | undefined) => {
+      if (index === undefined) return 0;
+      return index * candleWidth + candleWidth / 2;
+    },
+    [candleWidth]
+  );
+
+  const getYFromPrice = useCallback(
+    (price: number | undefined) => {
+      if (price === undefined) return height / 2;
+      return scaleY(price);
+    },
+    [scaleY]
+  );
+
   const invertY = useCallback(
     (y: number) => {
       const normalizedY = 1 - y / height;
@@ -212,9 +228,11 @@ export default function Chart({
         const points = drawing.points;
         if (points.length < 2) return null;
         
-        const pathD = points.map((p, i) => 
-          i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
-        ).join(" ");
+        const pathD = points.map((p, i) => {
+          const x = getXFromCandleIndex(p.candleIndex);
+          const y = getYFromPrice(p.price);
+          return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
+        }).join(" ");
 
         return (
           <path
@@ -228,13 +246,18 @@ export default function Chart({
       }
 
       if (drawing.type === "line") {
+        const x1 = getXFromCandleIndex(drawing.startPoint.candleIndex);
+        const y1 = getYFromPrice(drawing.startPoint.price);
+        const x2 = getXFromCandleIndex(drawing.endPoint.candleIndex);
+        const y2 = getYFromPrice(drawing.endPoint.price);
+
         return (
           <line
             key={drawing.id}
-            x1={drawing.startPoint.x}
-            y1={drawing.startPoint.y}
-            x2={drawing.endPoint.x}
-            y2={drawing.endPoint.y}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
             stroke="#f59e0b"
             strokeWidth={2}
             strokeDasharray="5,5"
@@ -243,30 +266,34 @@ export default function Chart({
       }
 
       if (drawing.type === "longshort") {
-        const midX = (drawing.startPoint.x + drawing.endPoint.x) / 2;
-        const midY = (drawing.startPoint.y + drawing.endPoint.y) / 2;
+        const x1 = getXFromCandleIndex(drawing.startPoint.candleIndex);
+        const y1 = getYFromPrice(drawing.startPoint.price);
+        const x2 = getXFromCandleIndex(drawing.endPoint.candleIndex);
+        const y2 = getYFromPrice(drawing.endPoint.price);
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
         const isLong = drawing.direction === "long";
         const color = isLong ? "#22c55e" : "#ef4444";
 
         return (
           <g key={drawing.id}>
             <line
-              x1={drawing.startPoint.x}
-              y1={drawing.startPoint.y}
-              x2={drawing.endPoint.x}
-              y2={drawing.endPoint.y}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
               stroke={color}
               strokeWidth={2}
             />
             <circle
-              cx={drawing.startPoint.x}
-              cy={drawing.startPoint.y}
+              cx={x1}
+              cy={y1}
               r={4}
               fill={color}
             />
             <circle
-              cx={drawing.endPoint.x}
-              cy={drawing.endPoint.y}
+              cx={x2}
+              cy={y2}
               r={4}
               fill={color}
             />
@@ -293,17 +320,20 @@ export default function Chart({
       }
 
       if (drawing.type === "fibonacci") {
-        const startY = drawing.startPoint.y;
-        const endY = drawing.endPoint.y;
-        const x = Math.min(drawing.startPoint.x, drawing.endPoint.x);
-        const fibWidth = Math.abs(drawing.endPoint.x - drawing.startPoint.x);
+        const startPrice = drawing.startPoint.price || displayCandles[drawing.startPoint.candleIndex || 0]?.close || 0;
+        const endPrice = drawing.endPoint.price || displayCandles[drawing.endPoint.candleIndex || 0]?.close || 0;
+        const startX = getXFromCandleIndex(drawing.startPoint.candleIndex);
+        const endX = getXFromCandleIndex(drawing.endPoint.candleIndex);
+        const x = Math.min(startX, endX);
+        const fibWidth = Math.abs(endX - startX);
 
         const fibColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6"];
 
         return (
           <g key={drawing.id}>
             {drawing.levels.map((level, idx) => {
-              const y = startY + (endY - startY) * level.level;
+              const levelPrice = startPrice + (endPrice - startPrice) * level.level;
+              const y = getYFromPrice(levelPrice);
               return (
                 <g key={level.level}>
                   <line
@@ -338,17 +368,17 @@ export default function Chart({
 
             <line
               x1={x}
-              y1={startY}
+              y1={getYFromPrice(startPrice)}
               x2={x + fibWidth}
-              y2={startY}
+              y2={getYFromPrice(startPrice)}
               stroke="#fff"
               strokeWidth={2}
             />
             <line
               x1={x}
-              y1={endY}
+              y1={getYFromPrice(endPrice)}
               x2={x + fibWidth}
-              y2={endY}
+              y2={getYFromPrice(endPrice)}
               stroke="#fff"
               strokeWidth={2}
             />
@@ -358,7 +388,7 @@ export default function Chart({
 
       return null;
     });
-  }, [drawings]);
+  }, [drawings, displayCandles, getXFromCandleIndex, getYFromPrice]);
 
   const renderDrawingPreview = useMemo(() => {
     if (activeTool === "trendline") {
