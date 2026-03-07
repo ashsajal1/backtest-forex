@@ -337,7 +337,7 @@ export default function Chart({
               return (
                 <g key={level.level}>
                   <line
-                    x1={x}
+                    x1={x - fibWidth}
                     y1={y}
                     x2={x + fibWidth}
                     y2={y}
@@ -346,7 +346,7 @@ export default function Chart({
                     strokeDasharray="4,4"
                   />
                   <rect
-                    x={x + fibWidth + 2}
+                    x={x - 47}
                     y={y - 8}
                     width={45}
                     height={16}
@@ -354,7 +354,7 @@ export default function Chart({
                     rx={2}
                   />
                   <text
-                    x={x + fibWidth + 4}
+                    x={x - 45}
                     y={y + 3}
                     fill="white"
                     fontSize={9}
@@ -367,7 +367,7 @@ export default function Chart({
             })}
 
             <line
-              x1={x}
+              x1={x - fibWidth}
               y1={getYFromPrice(startPrice)}
               x2={x + fibWidth}
               y2={getYFromPrice(startPrice)}
@@ -375,13 +375,32 @@ export default function Chart({
               strokeWidth={2}
             />
             <line
-              x1={x}
+              x1={x - fibWidth}
               y1={getYFromPrice(endPrice)}
               x2={x + fibWidth}
               y2={getYFromPrice(endPrice)}
               stroke="#fff"
               strokeWidth={2}
             />
+            
+            <text
+              x={x - fibWidth - 5}
+              y={getYFromPrice(startPrice) + 3}
+              fill="#9ca3af"
+              fontSize={8}
+              textAnchor="end"
+            >
+              {startPrice.toFixed(5)}
+            </text>
+            <text
+              x={x - fibWidth - 5}
+              y={getYFromPrice(endPrice) + 3}
+              fill="#9ca3af"
+              fontSize={8}
+              textAnchor="end"
+            >
+              {endPrice.toFixed(5)}
+            </text>
           </g>
         );
       }
@@ -458,27 +477,28 @@ export default function Chart({
       );
     }
 
-    if (activeTool === "fibonacci") {
-      const startY = Math.min(drawStartPoint.y, currentPoint.y);
-      const endY = Math.max(drawStartPoint.y, currentPoint.y);
-      const x = Math.min(drawStartPoint.x, currentPoint.x);
-      const fibWidth = Math.abs(currentPoint.x - drawStartPoint.x);
+    if (activeTool === "fibonacci" && drawStartPoint && currentPoint) {
+      const startX = Math.min(drawStartPoint.x, currentPoint.x);
+      const endX = Math.max(drawStartPoint.x, currentPoint.x);
+      const fibWidth = Math.abs(endX - startX);
+      const x = startX;
+
+      const startPrice = invertY(Math.min(drawStartPoint.y, currentPoint.y));
+      const endPrice = invertY(Math.max(drawStartPoint.y, currentPoint.y));
 
       const fibColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6"];
 
-      const levels = calculateFibonacciLevels(
-        invertY(drawStartPoint.y),
-        invertY(currentPoint.y)
-      );
+      const levels = calculateFibonacciLevels(startPrice, endPrice);
 
       return (
         <g>
           {levels.map((level, idx) => {
-            const y = startY + (endY - startY) * level.level;
+            const levelPrice = startPrice + (endPrice - startPrice) * level.level;
+            const y = getYFromPrice(levelPrice);
             return (
               <line
                 key={level.level}
-                x1={x}
+                x1={x - fibWidth}
                 y1={y}
                 x2={x + fibWidth}
                 y2={y}
@@ -494,7 +514,7 @@ export default function Chart({
     }
 
     return null;
-  }, [isDrawing, drawStartPoint, currentPoint, activeTool, invertY, trendlinePoints]);
+  }, [isDrawing, drawStartPoint, currentPoint, activeTool, invertY, trendlinePoints, getYFromPrice]);
 
   const cursorStyle = activeTool === "none" ? "default" : "crosshair";
 
