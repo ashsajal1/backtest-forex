@@ -1,6 +1,18 @@
 "use client";
 
+import { useRef, useState, useCallback, useMemo } from "react";
 import { Candle, StructureData } from "./structure";
+import {
+  Drawing,
+  DrawingTool,
+  Trendline,
+  Measurement,
+  Fibonacci,
+  calculateFibonacciLevels,
+  calculateMeasurement,
+  generateDrawingId,
+  Point,
+} from "./drawings";
 
 interface ChartProps {
   candles: Candle[];
@@ -8,6 +20,11 @@ interface ChartProps {
   revealCount: number;
   markIndex: number;
   structureData?: StructureData;
+  activeTool: DrawingTool;
+  drawings: Drawing[];
+  onAddDrawing: (drawing: Drawing) => void;
+  width?: number;
+  height?: number;
 }
 
 export default function Chart({
@@ -16,28 +33,379 @@ export default function Chart({
   revealCount,
   markIndex,
   structureData,
+  activeTool,
+  drawings,
+  onAddDrawing,
+  width = 1000,
+  height = 250,
 }: ChartProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawStartPoint, setDrawStartPoint] = useState<Point | null>(null);
+  const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
+
   const displayCount = visibleCount + revealCount;
   const displayCandles = candles.slice(0, displayCount);
 
-  if (displayCandles.length === 0) return null;
-
-  const minLow = Math.min(...displayCandles.map((c) => c.low));
-  const maxHigh = Math.max(...displayCandles.map((c) => c.high));
+  const minLow = displayCandles.length > 0 ? Math.min(...displayCandles.map((c) => c.low)) : 0;
+  const maxHigh = displayCandles.length > 0 ? Math.max(...displayCandles.map((c) => c.high)) : 0;
   const range = maxHigh - minLow || 1;
   const padding = range * 0.1;
 
-  const width = 1000;
-  const height = 250;
-  const candleWidth = width / displayCandles.length;
+  const candleWidth = width / (displayCandles.length || 1);
 
-  const scaleY = (value: number) =>
-    height - ((value - minLow + padding) / (range + padding * 2)) * height;
+  const scaleY = useCallback(
+    (value: number) => {
+      return height - ((value - minLow + padding) / (range + padding * 2)) * height;
+    },
+    [minLow, range, padding, height]
+  );
+
+  const invertY = useCallback(
+    (y: number) => {
+      const normalizedY = 1 - y / height;
+      return minLow - padding + (normalizedY * (range + padding * 2));
+    },
+    [minLow, range, padding, height]
+  );
+
+  const getCandleIndexFromX = useCallback(
+    (x: number) => {
+      return Math.floor(x / candleWidth);
+    },
+    [candleWidth]
+  );
+
+  const getPointFromEvent = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>): Point => {
+      const svg = svgRef.current;
+      if (!svg) return { x: 0, y: 0 };
+
+      const rect = svg.getBoundingClientRect();
+      const scaleX = width / rect.width;
+      const scaleY_ = height / rect.height;
+
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY_;
+
+      const candleIndex = getCandleIndexFromX(x);
+      const price = invertY(y);
+
+      return { x, y, price, candleIndex: Math.max(0, Math.min(candleIndex, displayCandles.length - 1)) };
+    },
+    [width, height, candleWidth, invertY, getCandleIndexFromX, displayCandles.length]
+  );
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (activeTool === "none") return;
+
+      const point = getPointFromEvent(e);
+      setDrawStartPoint(point);
+      setIsDrawing(true);
+      setCurrentPoint(point);
+    },
+    [activeTool, getPointFromEvent]
+  );
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (!isDrawing || !drawStartPoint) return;
+      const point = getPointFromEvent(e);
+      setCurrentPoint(point);
+    },
+    [isDrawing, drawStartPoint, getPointFromEvent]
+  );
+
+  const handleMouseUp = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (!isDrawing || !drawStartPoint || activeTool === "none") {
+        setIsDrawing(false);
+        setDrawStartPoint(null);
+        setCurrentPoint(null);
+        return;
+      }
+
+      const endPoint = getPointFromEvent(e);
+
+      if (activeTool === "trendline") {
+        const trendline: Trendline = {
+          id: generateDrawingId(),
+          type: "trendline",
+          startPoint: drawStartPoint,
+          endPoint,
+        };
+        onAddDrawing(trendline);
+      } else if (activeTool === "measurement") {
+        const candleAtStart = displayCandles[drawStartPoint.candleIndex || 0];
+        const candleAtEnd = displayCandles[endPoint.candleIndex || 0];
+
+        const measurement: Measurement = {
+          id: generateDrawingId(),
+          type: "measurement",
+          startPoint: { ...drawStartPoint, price: candleAtStart?.close, candleIndex: drawStartPoint.candleIndex },
+          endPoint: { ...endPoint, price: candleAtEnd?.close, candleIndex: endPoint.candleIndex },
+          priceDiff: 0,
+          pipDiff: 0,
+          candleCount: 0,
+        };
+
+        const calculated = calculateMeasurement(
+          { ...drawStartPoint, price: candleAtStart?.close, candleIndex: drawStartPoint.candleIndex },
+          { ...endPoint, price: candleAtEnd?.close, candleIndex: endPoint.candleIndex },
+          displayCandles
+        );
+
+        onAddDrawing({
+          ...measurement,
+          priceDiff: calculated.priceDiff,
+          pipDiff: calculated.pipDiff,
+          candleCount: calculated.candleCount,
+        });
+      } else if (activeTool === "fibonacci") {
+        const startPrice = drawStartPoint.price || displayCandles[0]?.close || 0;
+        const endPrice = endPoint.price || displayCandles[displayCandles.length - 1]?.close || 0;
+
+        const levels = calculateFibonacciLevels(startPrice, endPrice);
+
+        const fibonacci: Fibonacci = {
+          id: generateDrawingId(),
+          type: "fibonacci",
+          startPoint: drawStartPoint,
+          endPoint,
+          levels,
+        };
+        onAddDrawing(fibonacci);
+      }
+
+      setIsDrawing(false);
+      setDrawStartPoint(null);
+      setCurrentPoint(null);
+    },
+    [isDrawing, drawStartPoint, activeTool, getPointFromEvent, onAddDrawing, displayCandles]
+  );
+
+  const renderDrawings = useMemo(() => {
+    return drawings.map((drawing) => {
+      if (drawing.type === "trendline") {
+        return (
+          <line
+            key={drawing.id}
+            x1={drawing.startPoint.x}
+            y1={drawing.startPoint.y}
+            x2={drawing.endPoint.x}
+            y2={drawing.endPoint.y}
+            stroke="#3b82f6"
+            strokeWidth={2}
+          />
+        );
+      }
+
+      if (drawing.type === "measurement") {
+        const midX = (drawing.startPoint.x + drawing.endPoint.x) / 2;
+        const midY = (drawing.startPoint.y + drawing.endPoint.y) / 2;
+
+        return (
+          <g key={drawing.id}>
+            <line
+              x1={drawing.startPoint.x}
+              y1={drawing.startPoint.y}
+              x2={drawing.endPoint.x}
+              y2={drawing.endPoint.y}
+              stroke="#8b5cf6"
+              strokeWidth={2}
+            />
+            <circle
+              cx={drawing.startPoint.x}
+              cy={drawing.startPoint.y}
+              r={4}
+              fill="#8b5cf6"
+            />
+            <circle
+              cx={drawing.endPoint.x}
+              cy={drawing.endPoint.y}
+              r={4}
+              fill="#8b5cf6"
+            />
+            <rect
+              x={midX - 40}
+              y={midY - 12}
+              width={80}
+              height={24}
+              fill="#8b5cf6"
+              rx={4}
+            />
+            <text
+              x={midX}
+              y={midY + 4}
+              textAnchor="middle"
+              fill="white"
+              fontSize={10}
+              fontWeight="bold"
+            >
+              {drawing.pipDiff.toFixed(1)} pips
+            </text>
+          </g>
+        );
+      }
+
+      if (drawing.type === "fibonacci") {
+        const startY = drawing.startPoint.y;
+        const endY = drawing.endPoint.y;
+        const x = Math.min(drawing.startPoint.x, drawing.endPoint.x);
+        const fibWidth = Math.abs(drawing.endPoint.x - drawing.startPoint.x);
+
+        const fibColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6"];
+
+        return (
+          <g key={drawing.id}>
+            {drawing.levels.map((level, idx) => {
+              const y = startY + (endY - startY) * level.level;
+              return (
+                <g key={level.level}>
+                  <line
+                    x1={x}
+                    y1={y}
+                    x2={x + fibWidth}
+                    y2={y}
+                    stroke={fibColors[idx]}
+                    strokeWidth={1}
+                    strokeDasharray="4,4"
+                  />
+                  <rect
+                    x={x + fibWidth + 2}
+                    y={y - 8}
+                    width={45}
+                    height={16}
+                    fill={fibColors[idx]}
+                    rx={2}
+                  />
+                  <text
+                    x={x + fibWidth + 4}
+                    y={y + 3}
+                    fill="white"
+                    fontSize={9}
+                    fontWeight="bold"
+                  >
+                    {(level.level * 100).toFixed(1)}%
+                  </text>
+                </g>
+              );
+            })}
+
+            <line
+              x1={x}
+              y1={startY}
+              x2={x + fibWidth}
+              y2={startY}
+              stroke="#fff"
+              strokeWidth={2}
+            />
+            <line
+              x1={x}
+              y1={endY}
+              x2={x + fibWidth}
+              y2={endY}
+              stroke="#fff"
+              strokeWidth={2}
+            />
+          </g>
+        );
+      }
+
+      return null;
+    });
+  }, [drawings]);
+
+  const renderDrawingPreview = useMemo(() => {
+    if (!isDrawing || !drawStartPoint || !currentPoint) return null;
+
+    if (activeTool === "trendline") {
+      return (
+        <line
+          x1={drawStartPoint.x}
+          y1={drawStartPoint.y}
+          x2={currentPoint.x}
+          y2={currentPoint.y}
+          stroke="#3b82f6"
+          strokeWidth={2}
+          strokeDasharray="5,5"
+        />
+      );
+    }
+
+    if (activeTool === "measurement") {
+      return (
+        <line
+          x1={drawStartPoint.x}
+          y1={drawStartPoint.y}
+          x2={currentPoint.x}
+          y2={currentPoint.y}
+          stroke="#8b5cf6"
+          strokeWidth={2}
+          strokeDasharray="5,5"
+        />
+      );
+    }
+
+    if (activeTool === "fibonacci") {
+      const startY = Math.min(drawStartPoint.y, currentPoint.y);
+      const endY = Math.max(drawStartPoint.y, currentPoint.y);
+      const x = Math.min(drawStartPoint.x, currentPoint.x);
+      const fibWidth = Math.abs(currentPoint.x - drawStartPoint.x);
+
+      const fibColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6"];
+
+      const levels = calculateFibonacciLevels(
+        invertY(drawStartPoint.y),
+        invertY(currentPoint.y)
+      );
+
+      return (
+        <g>
+          {levels.map((level, idx) => {
+            const y = startY + (endY - startY) * level.level;
+            return (
+              <line
+                key={level.level}
+                x1={x}
+                y1={y}
+                x2={x + fibWidth}
+                y2={y}
+                stroke={fibColors[idx]}
+                strokeWidth={1}
+                strokeDasharray="4,4"
+                opacity={0.6}
+              />
+            );
+          })}
+        </g>
+      );
+    }
+
+    return null;
+  }, [isDrawing, drawStartPoint, currentPoint, activeTool, invertY]);
+
+  const cursorStyle = activeTool === "none" ? "default" : "crosshair";
+
+  if (displayCandles.length === 0) return null;
 
   return (
     <svg
+      ref={svgRef}
       viewBox={`0 0 ${width} ${height}`}
       className="w-full h-[200px] sm:h-[250px]"
+      style={{ cursor: cursorStyle }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={() => {
+        if (isDrawing) {
+          setIsDrawing(false);
+          setDrawStartPoint(null);
+          setCurrentPoint(null);
+        }
+      }}
     >
       {[0, 0.25, 0.5, 0.75, 1].map((pos) => (
         <line
@@ -61,10 +429,7 @@ export default function Chart({
         let opacity = 1;
         if (isHidden && revealCount > 0) {
           const revealProgress = i - visibleCount;
-          opacity =
-            revealProgress < revealCount
-              ? (revealProgress + 1) / revealCount
-              : 1;
+          opacity = revealProgress < revealCount ? (revealProgress + 1) / revealCount : 1;
         } else if (isHidden && revealCount === 0) {
           opacity = 0;
         }
@@ -85,10 +450,7 @@ export default function Chart({
               x={i * candleWidth + 1}
               y={scaleY(Math.max(candle.open, candle.close))}
               width={Math.max(candleWidth - 2, 2)}
-              height={Math.max(
-                1,
-                Math.abs(scaleY(candle.open) - scaleY(candle.close))
-              )}
+              height={Math.max(1, Math.abs(scaleY(candle.open) - scaleY(candle.close)))}
               fill={color}
             />
             {isMarked && (
@@ -104,6 +466,10 @@ export default function Chart({
           </g>
         );
       })}
+
+      {renderDrawingPreview}
+
+      {renderDrawings}
 
       {revealCount === 0 && (
         <line

@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { Candle, StructureData, detectStructure } from "./structure";
 import Chart from "./chart";
+import DrawingToolbar from "./drawing-toolbar";
+import { Drawing, DrawingTool } from "./drawings";
 
 interface PracticeGameProps {
   totalCandles: number;
@@ -47,11 +49,23 @@ export default function PracticeGame({
   const [revealTimeout, setRevealTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
+  const [activeTool, setActiveTool] = useState<DrawingTool>("none");
+  const [drawings, setDrawings] = useState<Drawing[]>([]);
+
+  const handleAddDrawing = useCallback((drawing: Drawing) => {
+    setDrawings((prev) => [...prev, drawing]);
+  }, []);
+
+  const handleClearDrawings = useCallback(() => {
+    setDrawings([]);
+  }, []);
 
   useEffect(() => {
     setRevealCount(0);
     setStep("predict");
     setPrediction(null);
+    setDrawings([]);
+    setActiveTool("none");
   }, [gameKey]);
 
   useEffect(() => {
@@ -275,12 +289,23 @@ export default function PracticeGame({
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1">
           <div className="bg-muted/20 rounded-lg p-2 sm:p-4">
+            <div className="flex justify-between items-center mb-2">
+              <DrawingToolbar
+                activeTool={activeTool}
+                onToolChange={setActiveTool}
+                onClearDrawings={handleClearDrawings}
+                hasDrawings={drawings.length > 0}
+              />
+            </div>
             <Chart
               candles={visibleCandles}
               visibleCount={predictionIndex + 1}
               revealCount={revealCount}
               markIndex={predictionIndex}
               structureData={structureData}
+              activeTool={activeTool}
+              drawings={drawings}
+              onAddDrawing={handleAddDrawing}
             />
           </div>
         </div>
