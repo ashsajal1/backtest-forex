@@ -370,13 +370,28 @@ export default function Chart({
       ).join(" ");
 
       return (
-        <path
-          d={pathD}
-          stroke="#3b82f6"
-          strokeWidth={2}
-          strokeDasharray="5,5"
-          fill="none"
-        />
+        <g>
+          {allPoints.map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={i === 0 ? 6 : 4}
+              fill={i === 0 ? "#3b82f6" : "#60a5fa"}
+              stroke="white"
+              strokeWidth={1}
+            />
+          ))}
+          {allPoints.length >= 2 && (
+            <path
+              d={pathD}
+              stroke="#3b82f6"
+              strokeWidth={2}
+              strokeDasharray="5,5"
+              fill="none"
+            />
+          )}
+        </g>
       );
     }
 
