@@ -74,6 +74,29 @@ export default function PracticeGame({
     };
   }, [revealTimeout]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      if (key === "v") {
+        setActiveTool("none");
+      } else if (key === "t") {
+        setActiveTool("trendline");
+      } else if (key === "a") {
+        setActiveTool("measurement");
+      } else if (key === "d") {
+        setDrawings([]);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const visibleCandles = useMemo(() => {
     if (allCandles.length === 0) return [];
     return allCandles.slice(
