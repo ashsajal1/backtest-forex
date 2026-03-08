@@ -95,12 +95,22 @@ export default function TradePage() {
     if (!markedCandle) return;
     setTradeDirection(direction);
     setEntryPrice(markedCandle.close);
-    setTpPrice(null);
-    setSlPrice(null);
     setRevealCount(0);
     setTradeResult(null);
     setTradePnl(0);
     setGameKey(k => k + 1);
+    
+    const pipRisk = 20;
+    const pipReward = pipRisk * 2;
+    const isBuy = direction === "buy";
+    
+    if (isBuy) {
+      setSlPrice(markedCandle.close - pipRisk * 0.0001);
+      setTpPrice(markedCandle.close + pipReward * 0.0001);
+    } else {
+      setSlPrice(markedCandle.close + pipRisk * 0.0001);
+      setTpPrice(markedCandle.close - pipReward * 0.0001);
+    }
   }, [markedCandle]);
 
   const handleSetTpSl = useCallback((tp: number | null, sl: number | null) => {
@@ -368,7 +378,7 @@ export default function TradePage() {
                     <div className="space-y-3">
                       <div className="p-3 bg-muted/50 rounded-lg">
                         <div className="text-sm text-muted-foreground mb-2">
-                          Drag TP/SL lines on chart or use quick buttons
+                          Drag anywhere on chart to set TP/SL (2:1 default), or use quick buttons
                         </div>
                         
                         <div className="grid grid-cols-3 gap-1 mb-3">

@@ -58,6 +58,7 @@ export default function Chart({
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
   const [trendlinePoints, setTrendlinePoints] = useState<Point[]>([]);
   const [draggingTpSl, setDraggingTpSl] = useState<"tp" | "sl" | null>(null);
+  const [draggingNewLine, setDraggingNewLine] = useState<{price: number; y: number} | null>(null);
 
   const entryCandleIndex = useMemo(() => {
     if (!entryPrice) return markIndex;
@@ -144,6 +145,14 @@ export default function Chart({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
+      if (entryPrice && tradeDirection && onTpSlChange && activeTool === "none") {
+        const point = getPointFromEvent(e);
+        if (point.price !== undefined) {
+          setDraggingNewLine({ price: point.price, y: point.y });
+          return;
+        }
+      }
+
       if (activeTool === "none") return;
 
       const point = getPointFromEvent(e);
@@ -168,20 +177,49 @@ export default function Chart({
       setIsDrawing(true);
       setCurrentPoint(point);
     },
-    [activeTool, getPointFromEvent, trendlinePoints, onAddDrawing]
+    [activeTool, getPointFromEvent, trendlinePoints, onAddDrawing, entryPrice, tradeDirection, onTpSlChange]
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
+      if (draggingNewLine) {
+        const point = getPointFromEvent(e);
+        if (point.price !== undefined) {
+          setDraggingNewLine({ price: point.price, y: point.y });
+        }
+        return;
+      }
+
       if (!isDrawing || !drawStartPoint) return;
       const point = getPointFromEvent(e);
       setCurrentPoint(point);
     },
-    [isDrawing, drawStartPoint, getPointFromEvent]
+    [isDrawing, drawStartPoint, getPointFromEvent, draggingNewLine]
   );
 
   const handleMouseUp = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
+      if (draggingNewLine && entryPrice && onTpSlChange) {
+        const isAboveEntry = draggingNewLine.price > entryPrice;
+        
+        if (tradeDirection === "buy") {
+          if (isAboveEntry) {
+            onTpSlChange(draggingNewLine.price, slPrice ?? null);
+          } else {
+            onTpSlChange(tpPrice ?? null, draggingNewLine.price);
+          }
+        } else {
+          if (isAboveEntry) {
+            onTpSlChange(tpPrice ?? null, draggingNewLine.price);
+          } else {
+            onTpSlChange(draggingNewLine.price, slPrice ?? null);
+          }
+        }
+        
+        setDraggingNewLine(null);
+        return;
+      }
+
       if (!isDrawing || !drawStartPoint || activeTool === "none") {
         setIsDrawing(false);
         setDrawStartPoint(null);
@@ -247,7 +285,7 @@ export default function Chart({
       setDrawStartPoint(null);
       setCurrentPoint(null);
     },
-    [isDrawing, drawStartPoint, activeTool, getPointFromEvent, onAddDrawing, displayCandles]
+    [isDrawing, drawStartPoint, activeTool, getPointFromEvent, onAddDrawing, displayCandles, draggingNewLine, entryPrice, tradeDirection, onTpSlChange, tpPrice, slPrice]
   );
 
   const handleTpSlMouseDown = useCallback((e: React.MouseEvent<SVGGElement>, type: "tp" | "sl") => {
@@ -686,7 +724,9 @@ export default function Chart({
     return null;
   }, [isDrawing, drawStartPoint, currentPoint, activeTool, invertY, trendlinePoints, getYFromPrice]);
 
-  const cursorStyle = activeTool === "none" ? "default" : "crosshair";
+  const cursorStyle = activeTool === "none" 
+    ? (entryPrice && tradeDirection ? "ns-resize" : "default") 
+    : "crosshair";
 
   if (displayCandles.length === 0) return null;
 
@@ -698,9 +738,11 @@ export default function Chart({
     }
   };
 
-  const handleSvgMouseUp = () => {
+  const handleSvgMouseUp = (e: React.MouseEvent<SVGSVGElement>) => {
     if (draggingTpSl) {
       handleTpSlMouseUp();
+    } else if (draggingNewLine) {
+      handleMouseUp(e);
     } else {
       // original mouseUp doesn't need event
     }
@@ -711,7 +753,7 @@ export default function Chart({
       ref={svgRef}
       viewBox={`0 0 ${width} ${height}`}
       className="w-full h-[200px] sm:h-[250px]"
-      style={{ cursor: draggingTpSl ? "ns-resize" : cursorStyle }}
+      style={{ cursor: draggingTpSl || draggingNewLine ? "ns-resize" : cursorStyle }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleSvgMouseMove}
       onMouseUp={handleSvgMouseUp}
@@ -723,6 +765,9 @@ export default function Chart({
         }
         if (draggingTpSl) {
           setDraggingTpSl(null);
+        }
+        if (draggingNewLine) {
+          setDraggingNewLine(null);
         }
       }}
     >
@@ -789,6 +834,34 @@ export default function Chart({
       {renderDrawingPreview}
 
       {renderDrawings}
+
+      {draggingNewLine && (
+        <g>
+          <line
+            x1={0}
+            y1={draggingNewLine.y}
+            x2={width}
+            y2={draggingNewLine.y}
+            stroke={entryPrice ? (draggingNewLine.price > entryPrice ? "#22c55e" : "#ef4444") : "#3b82f6"}
+            strokeWidth={2}
+            strokeDasharray="5,5"
+          />
+          <text
+            x={width / 2}
+            y={draggingNewLine.y - 5}
+            fill={entryPrice ? (draggingNewLine.price > entryPrice ? "#22c55e" : "#ef4444") : "#3b82f6"}
+            fontSize={12}
+            fontWeight="bold"
+            textAnchor="middle"
+          >
+            {entryPrice 
+              ? (draggingNewLine.price > entryPrice 
+                  ? (tradeDirection === "buy" ? "TP" : "SL")
+                  : (tradeDirection === "buy" ? "SL" : "TP"))
+              : "SET LEVEL"}: {draggingNewLine.price.toFixed(5)}
+          </text>
+        </g>
+      )}
 
       {renderTpSl}
 
