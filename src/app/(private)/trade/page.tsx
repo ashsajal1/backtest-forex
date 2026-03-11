@@ -85,7 +85,7 @@ export default function TradePage() {
     if (allCandles.length === 0) return [];
     return allCandles.slice(
       startIndex,
-      startIndex + config[difficulty].total + config[difficulty].hideCount
+      startIndex + config[difficulty].total + 200
     );
   }, [allCandles, startIndex, difficulty, config]);
 
@@ -122,14 +122,27 @@ export default function TradePage() {
     if (!entryPrice || !tradeDirection || !tpPrice || !slPrice) return;
 
     let reveal = 0;
-    const totalCandlesToReveal = config[difficulty].hideCount;
 
     const checkTrade = () => {
       const currentCandleIndex = config[difficulty].predictionIndex + reveal;
       if (currentCandleIndex >= visibleCandles.length) {
-        setTradeResult("loss");
-        setTradePnl(0);
-        setBalance(b => b - positionSize * 10);
+        const lastCandle = visibleCandles[visibleCandles.length - 1];
+        if (lastCandle) {
+          const isBuy = tradeDirection === "buy";
+          const pips = isBuy
+            ? (lastCandle.close - entryPrice) * 10000
+            : (entryPrice - lastCandle.close) * 10000;
+          const pnl = pips * positionSize;
+          if (pnl > 0) {
+            setTradeResult("win");
+            setTradePnl(pnl);
+            setBalance(b => b + pnl);
+          } else {
+            setTradeResult("loss");
+            setTradePnl(pnl);
+            setBalance(b => b + pnl);
+          }
+        }
         return;
       }
 
@@ -168,26 +181,7 @@ export default function TradePage() {
       } else {
         reveal++;
         setRevealCount(reveal);
-        if (reveal < totalCandlesToReveal) {
-          setTimeout(checkTrade, 50);
-        } else {
-          const lastCandle = visibleCandles[visibleCandles.length - 1];
-          if (lastCandle) {
-            const pips = isBuy
-              ? (lastCandle.close - entryPrice) * 10000
-              : (entryPrice - lastCandle.close) * 10000;
-            const pnl = pips * positionSize;
-            if (pnl > 0) {
-              setTradeResult("win");
-              setTradePnl(pnl);
-              setBalance(b => b + pnl);
-            } else {
-              setTradeResult("loss");
-              setTradePnl(pnl);
-              setBalance(b => b + pnl);
-            }
-          }
-        }
+        setTimeout(checkTrade, 30);
       }
     };
 
