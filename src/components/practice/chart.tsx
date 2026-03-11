@@ -32,6 +32,7 @@ interface ChartProps {
   slPrice?: number | null;
   tradeDirection?: "buy" | "sell" | null;
   onTpSlChange?: (tp: number | null, sl: number | null) => void;
+  showActualPullbacks?: boolean;
 }
 
 export default function Chart({
@@ -51,6 +52,7 @@ export default function Chart({
   slPrice,
   tradeDirection,
   onTpSlChange,
+  showActualPullbacks = false,
 }: ChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -442,20 +444,25 @@ export default function Chart({
       if (drawing.type === "trendline") {
         const points = drawing.points;
         if (points.length < 2) return null;
-        
+
         const pathD = points.map((p, i) => {
           const x = getXFromCandleIndex(p.candleIndex);
           const y = getYFromPrice(p.price);
           return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
         }).join(" ");
 
+        // Check if this is an actual pullback (id starts with "actual-")
+        const isActualPullback = showActualPullbacks && drawing.id.startsWith("actual-");
+
         return (
           <path
             key={drawing.id}
             d={pathD}
-            stroke="#3b82f6"
-            strokeWidth={2}
+            stroke={isActualPullback ? "#9ca3af" : "#3b82f6"}
+            strokeWidth={isActualPullback ? 2 : 2}
+            strokeDasharray={isActualPullback ? "5,5" : "none"}
             fill="none"
+            opacity={isActualPullback ? 0.7 : 1}
           />
         );
       }
@@ -615,7 +622,7 @@ export default function Chart({
 
       return null;
     });
-  }, [drawings, displayCandles, getXFromCandleIndex, getYFromPrice]);
+  }, [drawings, displayCandles, getXFromCandleIndex, getYFromPrice, showActualPullbacks]);
 
   const renderDrawingPreview = useMemo(() => {
     if (activeTool === "trendline") {

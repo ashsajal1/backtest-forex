@@ -30,6 +30,7 @@ interface PracticeGameProps {
   startIndex: number;
   onNext: () => void;
   gameKey: number;
+  showPullback?: boolean;
 }
 
 export default function PracticeGame({
@@ -42,6 +43,7 @@ export default function PracticeGame({
   startIndex,
   onNext,
   gameKey,
+  showPullback = true,
 }: PracticeGameProps) {
   const [revealCount, setRevealCount] = useState(0);
   const [step, setStep] = useState<"predict" | "result">("predict");

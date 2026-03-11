@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HelpCircle, TrendingUp, Wallet } from "lucide-react";
+import { HelpCircle, TrendingUp, Wallet, TrendingDown } from "lucide-react";
 import Link from "next/link";
 import eurUsdData from "@/db/EURUSD.json";
 import xauUsdData from "@/db/XAUUSD.json";
@@ -31,6 +31,7 @@ export default function PracticePage() {
   const [score100, setScore100] = useState({ correct: 0, total: 0 });
   const [score200, setScore200] = useState({ correct: 0, total: 0 });
   const [mounted, setMounted] = useState(false);
+  const [showPullback, setShowPullback] = useState(true);
 
   const config = {
     "50": { total: 50, predictionIndex: 39, hideCount: 10 },
@@ -147,6 +148,22 @@ export default function PracticePage() {
                 </SelectContent>
               </Select>
 
+              <button
+                onClick={() => setShowPullback(!showPullback)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium text-sm transition-colors ${
+                  showPullback
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                }`}
+              >
+                {showPullback ? (
+                  <TrendingDown className="w-4 h-4" />
+                ) : (
+                  <TrendingUp className="w-4 h-4" />
+                )}
+                Pullback
+              </button>
+
               <Link
                 href="/trade"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-sm transition-colors"
@@ -191,6 +208,7 @@ export default function PracticePage() {
                   startIndex={startIndex50}
                   onNext={advance50}
                   gameKey={gameKey50}
+                  showPullback={showPullback}
                 />
               </TabsContent>
 
@@ -205,6 +223,7 @@ export default function PracticePage() {
                   startIndex={startIndex100}
                   onNext={advance100}
                   gameKey={gameKey100}
+                  showPullback={showPullback}
                 />
               </TabsContent>
 
@@ -219,6 +238,7 @@ export default function PracticePage() {
                   startIndex={startIndex200}
                   onNext={advance200}
                   gameKey={gameKey200}
+                  showPullback={showPullback}
                 />
               </TabsContent>
             </Tabs>
